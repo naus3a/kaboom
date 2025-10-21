@@ -1,0 +1,46 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*/main
+*/app
+# To ignore all binaries:
+# *
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+# (especially when used with LiteIDE)
+*.out
+
+# Dependency directories (e.g. for Go versions before Go Modules)
+# Vendor is often kept for reproducible builds. Uncomment if you truly want to ignore it.
+# vendor/
+
+# GoLand/IntelliJ IDEA
+.idea/
+
+# VS Code
+.vscode/
+
+# Build outputs
+# Common binary names (adjust based on your project name/main package name)
+# If your main package is in the root directory and named 'myproject', it'll build a binary named 'myproject'
+# You can ignore it directly in the root or a 'bin' directory if you use `go build -o bin/myproject`
+<your-project-name>
+<main-package-name>
+bin/
+build/
+
+# Package files are now stored in $GOPATH/pkg/mod, but older
+# Go versions or specific build setups might still create them
+# *.a
+
+# Logs and other generated files
+log/
+temp/
+tmp/
+
