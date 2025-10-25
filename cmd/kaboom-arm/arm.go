@@ -89,10 +89,20 @@ func main(){
 
 	encPayload, err := key.Encrypt(plaPayload)
 	reportErrorAndExit(err)
+	
+	if lFlag!="" {
+		err = fs.SaveFile(encPayload, lFlag)
+		reportErrorAndExit(err)
+	}
 
+	shares, err := key.Split(int(tFlag), int(sFlag))
+	reportErrorAndExit(err)
+	for i:=0; i<len(shares); i++{
+		fmt.Printf("%s\n\n", string(shares[i]))
+	}
 }
 
-func reportErrorAndExit(err){
+func reportErrorAndExit(err error){
 	if err != nil {
                 fmt.Printf("%w", err)
                 os.Exit(1)
