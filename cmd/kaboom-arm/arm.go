@@ -90,7 +90,8 @@ func main(){
 	shares, err := key.Split(int(tFlag), int(sFlag))
 	reportErrorAndExit(err)
 	for i:=0; i<len(shares); i++{
-		fmt.Printf("%s\n\n", string(shares[i]))
+		fName := fmt.Sprintf("temp%d.shab", i)
+		fs.SaveFile(shares[i], fName)
 	}
 
 	if dFlag{
