@@ -20,6 +20,7 @@ Options:
 	-s, --shares		number of shares (default: 3)
 	-t, --threshold		share threshold (default: 2)
 	-n, --notes		extra notes for your payload
+	-d, --delete		secure-delete plaintext
 `
 
 func main(){
@@ -30,10 +31,12 @@ func main(){
 	var tFlag uint
 	var vFlag bool
 	var hFlag bool
+	var dFlag bool
 
 	cmd.InitCli(usage)
 	cmd.AddArg(&hFlag, false, "h", "help")
 	cmd.AddArg(&vFlag, false, "v", "version")
+	cmd.AddArg(&dFlag, false, "d","delete")
 	cmd.AddArg(&pFlag, "", "p", "payload")
 	cmd.AddArg(&lFlag, "", "l", "local")
 	cmd.AddArg(&nFlag, "", "n", "notes")
@@ -88,6 +91,11 @@ func main(){
 	reportErrorAndExit(err)
 	for i:=0; i<len(shares); i++{
 		fmt.Printf("%s\n\n", string(shares[i]))
+	}
+
+	if dFlag{
+		err = fs.DeleteFile(pFlag)
+		reportErrorAndExit(err)
 	}
 }
 
