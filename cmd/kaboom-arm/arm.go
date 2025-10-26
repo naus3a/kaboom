@@ -104,7 +104,7 @@ func main(){
 
 func reportErrorAndExit(err error){
 	if err != nil {
-                fmt.Printf("%w", err)
+                fmt.Printf("%v", err)
                 os.Exit(1)
         }
 }
