@@ -3,13 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"github.com/naus3a/kaboom/payload"
 	"github.com/naus3a/kaboom/fs"
+	"github.com/naus3a/kaboom/cmd"
 )
-
-const version = "0.0.1"
 
 const usage = `Usage:
 	kaboom-arm -p plaintext.file [-l localEncrypted.file] [-s 3] [-t 2]
@@ -25,9 +23,6 @@ Options:
 `
 
 func main(){
-	log.SetFlags(0)
-	flag.Usage = func() { fmt.Fprintf(os.Stderr, "%s\n", usage) }
-
 	var pFlag string
 	var lFlag string
 	var nFlag string
@@ -36,20 +31,14 @@ func main(){
 	var vFlag bool
 	var hFlag bool
 
-	flag.BoolVar(&hFlag, "h", false, "this help screen")
-	flag.BoolVar(&hFlag, "help", false, "this help screen")
-	flag.BoolVar(&vFlag, "v", false, "prints version")
-	flag.BoolVar(&vFlag, "version", false, "prints version")
-	flag.StringVar(&pFlag, "p", "", "the payload file to encrypt")
-	flag.StringVar(&lFlag, "local", "", "the local encryoted output")
-	flag.StringVar(&lFlag, "l", "", "the local encryoted output")
-	flag.StringVar(&pFlag, "payload", "", "the payload file to encrypt")
-	flag.StringVar(&nFlag, "notes", "", "estra notes")
-	flag.StringVar(&nFlag, "n", "", "estra notes")
-	flag.UintVar(&sFlag, "s", 3, "shamir shared secrer shares")
-	flag.UintVar(&sFlag, "shares", 3, "shamir shared secrer shares")
-	flag.UintVar(&tFlag, "threshold", 2, "shamir shared secret threshold")
-	flag.UintVar(&tFlag, "t", 2, "shamir shared secret threshold")
+	cmd.InitCli(usage)
+	cmd.AddArg(&hFlag, false, "h", "help")
+	cmd.AddArg(&vFlag, false, "v", "version")
+	cmd.AddArg(&pFlag, "", "p", "payload")
+	cmd.AddArg(&lFlag, "", "l", "local")
+	cmd.AddArg(&nFlag, "", "n", "notes")
+	cmd.AddArg(&sFlag, 3, "s", "shares")
+	cmd.AddArg(&tFlag, 2, "t", "threshold")
 
 	flag.Parse()
 
@@ -59,7 +48,7 @@ func main(){
 	}
 
 	if vFlag {
-		fmt.Println(version)
+		fmt.Println(cmd.Version)
 		os.Exit(0)
 	}
 
