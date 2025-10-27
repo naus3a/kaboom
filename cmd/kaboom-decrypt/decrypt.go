@@ -5,28 +5,38 @@ import(
 	"fmt"
 	"flag"
 	"github.com/naus3a/kaboom/cmd"
+	"github.com/naus3a/kaboom/fs"
+	"github.com/naus3a/kaboom/payload"
 )
 
 const usage = `Usage:
-	kaboom-decrypt [-s a.shab,b.shab]
+	kaboom-decrypt [-s a.shab,b.shab] [-k key.keyb] [-p encrypted.xyz]
 
 	Options:
 		-h, --help	this help screen
 		-v, --version	prints version
 		-s, shares	a list of csv share paths
+		-k, --key		the key file
+		-p, --payload		the encrypted file
 `
 
 func main(){
 	var hFlag bool
 	var vFlag bool
 	var sFlag string
-	
+	var kFlag string
+	var pFlag string
+
 	hasAtLeast1Task := false
+	var key *payload.ArmoredPayloadKey = nil
+	var err error = nil
 
 	cmd.InitCli(usage)
 	cmd.AddArg(&hFlag, false, "h", "help")
 	cmd.AddArg(&vFlag, false, "v", "version")
 	cmd.AddArg(&sFlag, "", "s", "shares")
+	cmd.AddArg(&kFlag, "", "k", "key")
+	cmd.AddArg(&pFlag, "", "p", "payload")
 	flag.Parse()
 
 	if hFlag{
@@ -40,12 +50,62 @@ func main(){
 	}
 
 	if sFlag!=""{
-		pthShares, err := cmd.UnpackCsvArg(&sFlag)
+		hasAtLeast1Task = true
+		key, err = combineShares(sFlag)
+		cmd.ReportErrorAndExit(err)
+	}
+
+	if kFlag!=""{
+		keySer, err := fs.LoadFile(kFlag)
+		cmd.ReportErrorAndExit(err)
+		key, err = payload.Deserialize(keySer)
+		cmd.ReportErrorAndExit(err)
+	}
+	
+	if pFlag!=""{
+		hasAtLeast1Task = true
+		if key==nil{
+			fmt.Println("you need a valid key to decrypt")
+			os.Exit(1)
+		}
+		data, err := fs.LoadFile(pFlag)
+		cmd.ReportErrorAndExit(err)
+		plain, err := key.Decrypt(data)
+		cmd.ReportErrorAndExit(err)
+		err = fs.SaveFile(plain, "plain.text")
 		cmd.ReportErrorAndExit(err)
 	}
 
 	if !hasAtLeast1Task {
+		fmt.Println("you need to specify at least one task")
 		flag.Usage()
 		os.Exit(1)
 	}
+}
+
+func combineShares(arg string)(*payload.ArmoredPayloadKey, error){
+	pthShares, err := cmd.UnpackCsvArg(&arg)
+	if err!=nil {
+		return nil, err
+	}
+	shares := make([][]byte, len(pthShares))
+	for i:=0; i<len(pthShares); i++{
+		shares[i], err = fs.LoadFile(pthShares[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	key, err := payload.CombineSharesInArmoredPayloadKey(shares)
+	if err!=nil {
+		return nil, err
+	}
+	keySer, err := key.Serialize()
+	if err!=nil{
+		return nil, err
+	}
+	err = fs.SaveFile(keySer, "key.keyb")
+	if err!=nil{
+		return nil, err
+	}
+	return key, nil
 }
