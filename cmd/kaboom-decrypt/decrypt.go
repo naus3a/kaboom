@@ -21,7 +21,7 @@ func main(){
 	var vFlag bool
 	var sFlag string
 	
-	hasAtLeat1Task := false
+	hasAtLeast1Task := false
 
 	cmd.InitCli(usage)
 	cmd.AddArg(&hFlag, false, "h", "help")
@@ -40,7 +40,8 @@ func main(){
 	}
 
 	if sFlag!=""{
-		
+		pthShares, err := cmd.UnpackCsvArg(&sFlag)
+		cmd.ReportErrorAndExit(err)
 	}
 
 	if !hasAtLeast1Task {

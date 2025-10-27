@@ -1,6 +1,7 @@
 package cmd
 
 import(
+	"strings"
 	"flag"
 	"log"
 	"fmt"
@@ -45,4 +46,12 @@ func ReportErrorAndExit(err error){
 		fmt.Printf("%v", err)
 		os.Exit(1)
 	}
+}
+
+func UnpackCsvArg(arg *string)([]string, error){
+	vals := strings.Split(*arg, ",")
+	if len(vals)<1 {
+		return nil, fmt.Errorf("no values specified")
+	}
+	return vals, nil
 }
