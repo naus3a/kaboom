@@ -39,3 +39,10 @@ func AddArg[T AllowedArgType](arg *T, defaultValue T, commands ... string)error{
 			return fmt.Errorf("unsupported arg type")
 	}
 }
+
+func ReportErrorAndExit(err error){
+	if err != nil {
+		fmt.Printf("%v", err)
+		os.Exit(1)
+	}
+}

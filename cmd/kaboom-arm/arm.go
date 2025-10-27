@@ -74,21 +74,21 @@ func main(){
 	}
 
 	plaPayload, err := fs.LoadFile(pFlag)
-	reportErrorAndExit(err)
+	cmd.ReportErrorAndExit(err)
 
 	key, err := payload.NewArmoredPayloadKey("TODO", nFlag)
-	reportErrorAndExit(err)
+	cmd.ReportErrorAndExit(err)
 
 	encPayload, err := key.Encrypt(plaPayload)
-	reportErrorAndExit(err)
+	cmd.ReportErrorAndExit(err)
 	
 	if lFlag!="" {
 		err = fs.SaveFile(encPayload, lFlag)
-		reportErrorAndExit(err)
+		cmd.ReportErrorAndExit(err)
 	}
 
 	shares, err := key.Split(int(tFlag), int(sFlag))
-	reportErrorAndExit(err)
+	cmd.ReportErrorAndExit(err)
 	for i:=0; i<len(shares); i++{
 		fName := fmt.Sprintf("temp%d.shab", i)
 		fs.SaveFile(shares[i], fName)
@@ -96,13 +96,7 @@ func main(){
 
 	if dFlag{
 		err = fs.DeleteFile(pFlag)
-		reportErrorAndExit(err)
+		cmd.ReportErrorAndExit(err)
 	}
 }
 
-func reportErrorAndExit(err error){
-	if err != nil {
-                fmt.Printf("%v", err)
-                os.Exit(1)
-        }
-}
