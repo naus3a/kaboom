@@ -10,7 +10,7 @@ import(
 )
 
 const usage = `Usage:
-	kaboom-decrypt [-s a.shab,b.shab] [-k key.keyb] [-p encrypted.xyz]
+	kaboom-decrypt [-s a.shab,b.shab] [-k key.keyb] [-p encrypted.xyz] [-o outputName]
 
 	Options:
 		-h, --help	this help screen
@@ -18,7 +18,11 @@ const usage = `Usage:
 		-s, shares	a list of csv share paths
 		-k, --key		the key file
 		-p, --payload		the encrypted file
+		-o, --output		ourput file name; default is 'decrypted'; key will use the .keyb eztension and shares will use  .shab
 `
+
+const extKey = ".keyb"
+const extPla = ".plab"
 
 func main(){
 	var hFlag bool
@@ -26,6 +30,7 @@ func main(){
 	var sFlag string
 	var kFlag string
 	var pFlag string
+	var oFlag string
 
 	hasAtLeast1Task := false
 	var key *payload.ArmoredPayloadKey = nil
@@ -37,6 +42,7 @@ func main(){
 	cmd.AddArg(&sFlag, "", "s", "shares")
 	cmd.AddArg(&kFlag, "", "k", "key")
 	cmd.AddArg(&pFlag, "", "p", "payload")
+	cmd.AddArg(&oFlag, "decrypted", "o", "output")
 	flag.Parse()
 
 	if hFlag{
@@ -51,7 +57,7 @@ func main(){
 
 	if sFlag!=""{
 		hasAtLeast1Task = true
-		key, err = combineShares(sFlag)
+		key, err = combineShares(sFlag, oFlag)
 		cmd.ReportErrorAndExit(err)
 	}
 
@@ -72,7 +78,8 @@ func main(){
 		cmd.ReportErrorAndExit(err)
 		plain, err := key.Decrypt(data)
 		cmd.ReportErrorAndExit(err)
-		err = fs.SaveFile(plain, "plain.text")
+		fName := oFlag+extPla
+		err = fs.SaveFile(plain, fName)
 		cmd.ReportErrorAndExit(err)
 	}
 
@@ -83,7 +90,7 @@ func main(){
 	}
 }
 
-func combineShares(arg string)(*payload.ArmoredPayloadKey, error){
+func combineShares(arg string, outName string)(*payload.ArmoredPayloadKey, error){
 	pthShares, err := cmd.UnpackCsvArg(&arg)
 	if err!=nil {
 		return nil, err
@@ -103,7 +110,8 @@ func combineShares(arg string)(*payload.ArmoredPayloadKey, error){
 	if err!=nil{
 		return nil, err
 	}
-	err = fs.SaveFile(keySer, "key.keyb")
+	fName := outName+extKey
+	err = fs.SaveFile(keySer, fName)
 	if err!=nil{
 		return nil, err
 	}
