@@ -90,7 +90,7 @@ func main(){
 	shares, err := key.Split(int(tFlag), int(sFlag))
 	cmd.ReportErrorAndExit(err)
 	for i:=0; i<len(shares); i++{
-		fName := fmt.Sprintf("temp%d.shab", i)
+		fName := fmt.Sprintf("temp%d%s", i, cmd.ExtShare)
 		fs.SaveFile(shares[i], fName)
 	}
 

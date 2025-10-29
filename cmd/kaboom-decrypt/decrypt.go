@@ -21,9 +21,6 @@ const usage = `Usage:
 		-o, --output		ourput file name; default is 'decrypted'; key will use the .keyb eztension and shares will use  .shab
 `
 
-const extKey = ".keyb"
-const extPla = ".plab"
-
 func main(){
 	var hFlag bool
 	var vFlag bool
@@ -78,7 +75,7 @@ func main(){
 		cmd.ReportErrorAndExit(err)
 		plain, err := key.Decrypt(data)
 		cmd.ReportErrorAndExit(err)
-		fName := oFlag+extPla
+		fName := oFlag+cmd.ExtPlain
 		err = fs.SaveFile(plain, fName)
 		cmd.ReportErrorAndExit(err)
 	}
@@ -110,7 +107,7 @@ func combineShares(arg string, outName string)(*payload.ArmoredPayloadKey, error
 	if err!=nil{
 		return nil, err
 	}
-	fName := outName+extKey
+	fName := outName+cmd.ExtKey
 	err = fs.SaveFile(keySer, fName)
 	if err!=nil{
 		return nil, err
