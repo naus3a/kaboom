@@ -85,12 +85,34 @@ func (k *ArmoredPayloadKey) Split(threshold int, numParts int) ([][]byte, error)
 	if err != nil {
 		return nil, err
 	}
-	return shamir.Split(jsonData, numParts, threshold)
+	data, err :=  shamir.Split(jsonData, numParts, threshold)
+	if err != nil{
+		return nil, err
+	}
+	shares := make([][]byte, numParts)
+	for i:=0; i<numParts;i++{
+		s := base64.RawURLEncoding.EncodeToString(data[i])
+		shares[i] = []byte(s)
+	}
+	return shares, nil
 }
 
 // CombineSharesInArmoredPayloadKey recombines a number of shares into the original ArmoredPayloadKey
 func CombineSharesInArmoredPayloadKey(shares [][]byte) (*ArmoredPayloadKey, error) {
-	jsonData, err := shamir.Combine(shares)
+	numShares := len(shares)
+	if numShares<1{
+		return nil, fmt.Errorf("bad input")
+	}
+	binShares:= make([][]byte, numShares)
+	for i:=0; i<numShares;i++{
+		var err error
+		binShares[i], err = base64.RawURLEncoding.DecodeString(string(shares[i]))
+		if err != nil{
+			return nil, err
+		}
+	}
+
+	jsonData, err := shamir.Combine(binShares)
 	if err != nil {
 		return nil, err
 	}

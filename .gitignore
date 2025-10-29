@@ -44,3 +44,4 @@ log/
 temp/
 tmp/
 
+*.swp
