@@ -21,6 +21,27 @@ func NewArmoredShare(share []byte, pubKey []byte, privKey []byte) *ArmoredShare 
 	}
 }
 
+func (s *ArmoredShare) VerifyShare(other *ArmoredShare) (bool, error) {
+	if other.AuthKey != s.AuthKey {
+		return false, nil
+	}
+	kData, err := base64.RawURLEncoding.DecodeString(s.AuthKey)
+	if err != nil {
+		return false, err
+	}
+	k := ed25519.PublicKey(kData)
+	sig, err := base64.RawURLEncoding.DecodeString(other.Signature)
+	if err != nil {
+		return false, nil
+	}
+	data, err := base64.RawURLEncoding.DecodeString(other.Share)
+	if err != nil {
+		return false, nil
+	}
+	isGood := ed25519.Verify(k, data, sig)
+	return isGood, nil
+}
+
 // MakeSigningKeys returns a public and a private key (int this order) + an error if anything goes wrong
 func MakeSigningKeys() ([]byte, []byte, error) {
 	return ed25519.GenerateKey(rand.Reader)
