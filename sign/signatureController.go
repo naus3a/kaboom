@@ -52,6 +52,10 @@ func (s * ArmoredShare) Serialize() ([]byte, error){
 	return json.Marshal(s)
 }
 
+func (s *ArmoredShare) GetData()([]byte, error){
+	return base64.RawURLEncoding.DecodeString(s.Share)
+}
+
 func makeShortId(signature []byte)string{
 	const lenId = 12
 	hasher := sha256.New()

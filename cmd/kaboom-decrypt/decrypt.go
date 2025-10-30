@@ -7,6 +7,7 @@ import(
 	"github.com/naus3a/kaboom/cmd"
 	"github.com/naus3a/kaboom/fs"
 	"github.com/naus3a/kaboom/payload"
+	"github.com/naus3a/kaboom/sign"
 )
 
 const usage = `Usage:
@@ -92,12 +93,35 @@ func combineShares(arg string, outName string)(*payload.ArmoredPayloadKey, error
 	if err!=nil {
 		return nil, err
 	}
-	shares := make([][]byte, len(pthShares))
-	for i:=0; i<len(pthShares); i++{
-		shares[i], err = fs.LoadFile(pthShares[i])
+
+	signedShares := make([]*sign.ArmoredShare, len(pthShares))
+	for i:=0;i<len(pthShares);i++{
+		jsonData, err := fs.LoadFile(pthShares[i])
 		if err != nil {
 			return nil, err
 		}
+		signedShares[i], err = sign.DeserializeShare(jsonData)
+		if err != nil {
+			return nil, err
+		}
+	}
+	
+	verified, err := verifyShares(signedShares)
+	if err!=nil{
+		return nil, err
+	}
+	if !verified{
+		return nil, fmt.Errorf("bad share signature")
+	}
+
+	shares := make([][]byte, len(signedShares))
+	for i:=0; i<len(signedShares); i++{
+
+		data, err := signedShares[i].GetData()
+		if err != nil {
+			return nil, err
+		}
+		shares[i] = data
 	}
 	key, err := payload.CombineSharesInArmoredPayloadKey(shares)
 	if err!=nil {
@@ -113,4 +137,21 @@ func combineShares(arg string, outName string)(*payload.ArmoredPayloadKey, error
 		return nil, err
 	}
 	return key, nil
+}
+
+func verifyShares(shares []*sign.ArmoredShare)(bool, error){
+	if len(shares)<2{
+		return true, nil
+	}
+
+	for i:=1; i<len(shares);i++{
+		b, err := shares[0].VerifyShare(shares[i])
+		if err != nil{
+			return b, err
+		}
+		if !b{
+			return false, err
+		}
+	}
+	return true, nil
 }
