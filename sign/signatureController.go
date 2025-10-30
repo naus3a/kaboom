@@ -16,7 +16,7 @@ type ArmoredShare struct {
 }
 
 func NewArmoredShare(share []byte, pubKey []byte, privKey []byte) *ArmoredShare {
-	sig := signData(share, privKey)
+	sig := SignData(share, privKey)
 	sid := makeShortId(sig)
 	return &ArmoredShare{
 		Share:     base64.RawURLEncoding.EncodeToString(share),
@@ -77,7 +77,7 @@ func MakeSigningKeys() ([]byte, []byte, error) {
 	return ed25519.GenerateKey(rand.Reader)
 }
 
-func signData(data []byte, privKey []byte) []byte {
+func SignData(data []byte, privKey []byte) []byte {
 	pk := ed25519.PrivateKey(privKey)
 	signature := ed25519.Sign(pk, data)
 	return signature
