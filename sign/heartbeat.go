@@ -3,34 +3,50 @@ package sign
 import (
 	"time"
 	"bytes"
-	"encoding/base64"
 	"encoding/binary"
+	"encoding/base64"
 )
 
 type HeartBeat struct{
 	Epoch int64
+	AllGood bool
 	Signature string
 }
 
-func NewHeartBeat(privKey []byte)(*HeartBeat, error){
-	now := time.Now()
-	epoch := now.Unix()
-	sig, err := SignTime(epoch, privKey)
+// GetData returns a byte buffer, ready to be signed
+func (h *HeartBeat) GetData()([]byte, error){
+	buf := new(bytes.Buffer)
+	order := binary.BigEndian
+	err := binary.Write(buf, order, h.Epoch)
 	if err != nil {
 		return nil, err
 	}
-	return &HeartBeat{
-		Epoch: epoch,	
-		Signature: base64.RawURLEncoding.EncodeToString(sig),
-	}, nil
-}
-
-func SignTime(epoch int64, privKey []byte)([]byte, error){
-	buf := new(bytes.Buffer)
-	err := binary.Write(buf, binary.BigEndian, epoch)
-	if err != nil{
+	err = binary.Write(buf, order, h.AllGood)
+	if err != nil {
 		return nil, err
 	}
-	data := buf.Bytes()
-	return SignData(data, privKey), nil
+	return buf.Bytes(), nil
+}
+
+func NewHeartBeat(allGood bool, privKey []byte)(*HeartBeat, error){
+	now := time.Now()
+	epoch := now.Unix()
+	hb := &HeartBeat{
+		Epoch: epoch,
+		AllGood: allGood,
+	}
+	err := hb.sign(privKey)
+	if err != nil {
+		return nil, err
+	}
+	return hb, nil
+}
+
+func (h *HeartBeat)sign(privKey []byte)( error){
+	data, err := h.GetData()
+	if err != nil{
+		return err
+	}
+	h.Signature = base64.RawURLEncoding.EncodeToString(SignData(data, privKey))
+	return nil
 }
