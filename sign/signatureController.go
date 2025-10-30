@@ -3,6 +3,7 @@ package sign
 import (
 	"crypto/ed25519"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 )
@@ -11,14 +12,17 @@ type ArmoredShare struct {
 	Share     string
 	AuthKey   string
 	Signature string
+	ShortId	 string
 }
 
 func NewArmoredShare(share []byte, pubKey []byte, privKey []byte) *ArmoredShare {
 	sig := signData(share, privKey)
+	sid := makeShortId(sig)
 	return &ArmoredShare{
 		Share:     base64.RawURLEncoding.EncodeToString(share),
 		AuthKey:   base64.RawURLEncoding.EncodeToString(pubKey),
 		Signature: base64.RawURLEncoding.EncodeToString(sig),
+		ShortId: sid,
 	}
 }
 
@@ -48,7 +52,17 @@ func (s * ArmoredShare) Serialize() ([]byte, error){
 	return json.Marshal(s)
 }
 
-func DeserializeShared(data []byte)(*ArmoredShare, error){
+func makeShortId(signature []byte)string{
+	const lenId = 12
+	hasher := sha256.New()
+	hasher.Write(signature)
+	fullHash := hasher.Sum(nil)
+	shortHash := fullHash[:lenId]
+	return base64.RawURLEncoding.EncodeToString(shortHash)
+}
+
+// DeserializeShare deserializes from json
+func DeserializeShare(data []byte)(*ArmoredShare, error){
 	s := ArmoredShare{}
 	err := json.Unmarshal(data, &s)
 	return &s, err

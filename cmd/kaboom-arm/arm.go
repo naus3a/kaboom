@@ -94,11 +94,12 @@ func main(){
 	pub, priv, err := sign.MakeSigningKeys()
 	cmd.ReportErrorAndExit(err)
 
-	_ = sign.SignShares(pub, priv, shares)
-
-	for i:=0; i<len(shares); i++{
-		fName := fmt.Sprintf("temp%d%s", i, cmd.ExtShare)
-		fs.SaveFile(shares[i], fName)
+	signedShares := sign.SignShares(pub, priv, shares)
+	for i:=0; i<len(signedShares); i++{
+		fName := fmt.Sprintf("%s%s", signedShares[i].ShortId, cmd.ExtShare)
+		jsonData, err := signedShares[i].Serialize()
+		cmd.ReportErrorAndExit(err)
+		fs.SaveFile(jsonData, fName)
 	}
 
 	if dFlag{
