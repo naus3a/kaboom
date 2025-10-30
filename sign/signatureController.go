@@ -4,6 +4,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 )
 
 type ArmoredShare struct {
@@ -40,6 +41,17 @@ func (s *ArmoredShare) VerifyShare(other *ArmoredShare) (bool, error) {
 	}
 	isGood := ed25519.Verify(k, data, sig)
 	return isGood, nil
+}
+
+// Serialize returns a json version of the signed share
+func (s * ArmoredShare) Serialize() ([]byte, error){
+	return json.Marshal(s)
+}
+
+func DeserializeShared(data []byte)(*ArmoredShare, error){
+	s := ArmoredShare{}
+	err := json.Unmarshal(data, &s)
+	return &s, err
 }
 
 // MakeSigningKeys returns a public and a private key (int this order) + an error if anything goes wrong
