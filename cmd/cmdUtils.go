@@ -10,6 +10,10 @@ import(
 
 const Version = "0.0.1"
 
+const ExtShare = ".shab"
+const ExtKey = ".keyb"
+const ExtPlain = ".plab"
+
 type AllowedArgType interface{
 	bool | uint | string
 }

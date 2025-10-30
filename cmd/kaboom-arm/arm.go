@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"github.com/naus3a/kaboom/payload"
+	"github.com/naus3a/kaboom/sign"
 	"github.com/naus3a/kaboom/fs"
 	"github.com/naus3a/kaboom/cmd"
 )
@@ -89,9 +90,16 @@ func main(){
 
 	shares, err := key.Split(int(tFlag), int(sFlag))
 	cmd.ReportErrorAndExit(err)
-	for i:=0; i<len(shares); i++{
-		fName := fmt.Sprintf("temp%d.shab", i)
-		fs.SaveFile(shares[i], fName)
+	
+	pub, priv, err := sign.MakeSigningKeys()
+	cmd.ReportErrorAndExit(err)
+
+	signedShares := sign.SignShares(pub, priv, shares)
+	for i:=0; i<len(signedShares); i++{
+		fName := fmt.Sprintf("%s%s", signedShares[i].ShortId, cmd.ExtShare)
+		jsonData, err := signedShares[i].Serialize()
+		cmd.ReportErrorAndExit(err)
+		fs.SaveFile(jsonData, fName)
 	}
 
 	if dFlag{
