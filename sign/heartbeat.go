@@ -3,6 +3,7 @@ package sign
 import (
 	"time"
 	"bytes"
+	"crypto/ed25519"
 	"encoding/binary"
 	"encoding/base64"
 )
@@ -49,4 +50,24 @@ func (h *HeartBeat)sign(privKey []byte)( error){
 	}
 	h.Signature = base64.RawURLEncoding.EncodeToString(SignData(data, privKey))
 	return nil
+}
+
+func VerifyHeartBeat(s *ArmoredShare, h *HeartBeat)(bool, error){
+	data, err := h.GetData()
+	if err != nil{
+		return false, err
+	}
+	kData, err := base64.RawURLEncoding.DecodeString(s.AuthKey)
+	if err != nil {
+		return false, err
+	}
+	k := ed25519.PublicKey(kData)
+
+	sig, err := base64.RawURLEncoding.DecodeString(h.Signature)
+	if err != nil {
+		return false, err
+	}
+
+	isGood := ed25519.Verify(k, data, sig)
+	return isGood, nil
 }
