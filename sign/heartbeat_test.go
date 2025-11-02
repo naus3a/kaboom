@@ -6,14 +6,15 @@ import(
 )
 
 func TestHeartBeat(t *testing.T){
-	pubKey, privKey, _ := sign.MakeSigningKeys()
-	hb, err := sign.NewHeartBeat(true, privKey)
+	key, _ := sign.NewSigningKeys()
+	
+	hb, err := sign.NewHeartBeat(true, key)
 	if err != nil {
 		t.Errorf("FAIL: coulndt create a heartbeat: %v", err)
 	}
 
 	fakeShare := []byte("123456")
-	share := sign.NewArmoredShare(fakeShare, pubKey, privKey)
+	share := sign.NewArmoredShare(fakeShare, key)
 
 	b, err := sign.VerifyHeartBeat(share, hb)
 	if err != nil {

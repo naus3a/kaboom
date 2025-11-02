@@ -12,17 +12,17 @@ type ArmoredShare struct {
 	Share     string
 	AuthKey   string
 	Signature string
-	ShortId	 string
+	ShortId   string
 }
 
-func NewArmoredShare(share []byte, pubKey []byte, privKey []byte) *ArmoredShare {
-	sig := SignData(share, privKey)
+func NewArmoredShare(share []byte, key *SigningKeys) *ArmoredShare {
+	sig := key.SignData(share)
 	sid := makeShortId(sig)
 	return &ArmoredShare{
 		Share:     base64.RawURLEncoding.EncodeToString(share),
-		AuthKey:   base64.RawURLEncoding.EncodeToString(pubKey),
+		AuthKey:   base64.RawURLEncoding.EncodeToString(key.Public),
 		Signature: base64.RawURLEncoding.EncodeToString(sig),
-		ShortId: sid,
+		ShortId:   sid,
 	}
 }
 
@@ -48,15 +48,15 @@ func (s *ArmoredShare) VerifyShare(other *ArmoredShare) (bool, error) {
 }
 
 // Serialize returns a json version of the signed share
-func (s * ArmoredShare) Serialize() ([]byte, error){
+func (s *ArmoredShare) Serialize() ([]byte, error) {
 	return json.Marshal(s)
 }
 
-func (s *ArmoredShare) GetData()([]byte, error){
+func (s *ArmoredShare) GetData() ([]byte, error) {
 	return base64.RawURLEncoding.DecodeString(s.Share)
 }
 
-func makeShortId(signature []byte)string{
+func makeShortId(signature []byte) string {
 	const lenId = 12
 	hasher := sha256.New()
 	hasher.Write(signature)
@@ -66,28 +66,72 @@ func makeShortId(signature []byte)string{
 }
 
 // DeserializeShare deserializes from json
-func DeserializeShare(data []byte)(*ArmoredShare, error){
+func DeserializeShare(data []byte) (*ArmoredShare, error) {
 	s := ArmoredShare{}
 	err := json.Unmarshal(data, &s)
 	return &s, err
 }
 
-// MakeSigningKeys returns a public and a private key (int this order) + an error if anything goes wrong
-func MakeSigningKeys() ([]byte, []byte, error) {
-	return ed25519.GenerateKey(rand.Reader)
+type SigningKeys struct {
+	Private []byte
+	Public  []byte
 }
 
-func SignData(data []byte, privKey []byte) []byte {
-	pk := ed25519.PrivateKey(privKey)
-	signature := ed25519.Sign(pk, data)
-	return signature
+// MakeSigningKeys return a nrew pair of signing/autheticating keys
+func NewSigningKeys() (*SigningKeys, error) {
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		return nil, err
+	}
+	return &SigningKeys{
+		Private: ed25519.PrivateKey(priv),
+		Public:  ed25519.PublicKey(pub),
+	}, nil
 }
 
-// SignShares retyrns an array of signed shares
-func SignShares(pubKey []byte, privKey []byte, shares [][]byte) []*ArmoredShare {
+// SignData signs arbitrary data
+func (k *SigningKeys) SignData(data []byte) []byte {
+	return ed25519.Sign(k.Private, data)
+}
+
+// SignShares returns an array of signed shares
+func (k *SigningKeys) SignShares(shares [][]byte) []*ArmoredShare {
 	signed := make([]*ArmoredShare, len(shares))
 	for i := 0; i < len(shares); i++ {
-		signed[i] = NewArmoredShare(shares[i], pubKey, privKey)
+		signed[i] = NewArmoredShare(shares[i], k)
 	}
 	return signed
+}
+
+type serializedSigningKeys struct {
+	Public  string
+	Private string
+}
+
+func (k *SigningKeys) Serialize() ([]byte, error) {
+	serialized := &serializedSigningKeys{
+		Public:  base64.RawURLEncoding.EncodeToString(k.Public),
+		Private: base64.RawURLEncoding.EncodeToString(k.Private),
+	}
+	return json.Marshal(serialized)
+}
+
+func DeserializeSigningKeys(jsonData []byte) (*SigningKeys, error) {
+	serialized := serializedSigningKeys{}
+	err := json.Unmarshal(jsonData, &serialized)
+	if err != nil {
+		return nil, err
+	}
+	pubData, err := base64.RawURLEncoding.DecodeString(serialized.Public)
+	if err != nil {
+		return nil, err
+	}
+	privData, err := base64.RawURLEncoding.DecodeString(serialized.Private)
+	if err != nil {
+		return nil, err
+	}
+	return &SigningKeys{
+		Public:  pubData,
+		Private: privData,
+	}, nil
 }

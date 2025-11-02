@@ -1,6 +1,7 @@
 package sign_test
 
 import (
+	"bytes"
 	"encoding/base64"
 	"github.com/naus3a/kaboom/sign"
 	"testing"
@@ -12,19 +13,19 @@ func TestShareSigning(t *testing.T) {
 	fakeShares[1] = []byte("111111111")
 	fakeShares[2] = []byte("222222222")
 
-	pubKey, privKey, err := sign.MakeSigningKeys()
+	key, err := sign.NewSigningKeys()
 	if err != nil {
 		t.Errorf("FAIL: cannot generate keys")
 	}
 
-	signed := sign.SignShares(pubKey, privKey, fakeShares)
+	signed := key.SignShares(fakeShares)
 
 	//test the share making
 	for i := 0; i < len(signed); i++ {
 		if signed[i].Share != base64.RawURLEncoding.EncodeToString(fakeShares[i]) {
 			t.Errorf("FAIL: corrupted share")
 		}
-		if signed[i].AuthKey != base64.RawURLEncoding.EncodeToString(pubKey) {
+		if signed[i].AuthKey != base64.RawURLEncoding.EncodeToString(key.Public) {
 			t.Errorf("FAIL: corrupted authentication key")
 		}
 	}
@@ -37,8 +38,9 @@ func TestShareSigning(t *testing.T) {
 		t.Errorf("FAIL: verifying good signature failed")
 	}
 
-	wrongPub, wrongPriv, _ := sign.MakeSigningKeys()
-	wrongShares := sign.SignShares(wrongPub, wrongPriv, fakeShares)
+	wrongKey, _ := sign.NewSigningKeys()
+
+	wrongShares := wrongKey.SignShares(fakeShares)
 	b, _ = signed[0].VerifyShare(wrongShares[0])
 	if b {
 		t.Errorf("FAIL: failed to identify different authentication key")
@@ -52,5 +54,23 @@ func TestShareSigning(t *testing.T) {
 	b, _ = signed[0].VerifyShare(tampered)
 	if b {
 		t.Errorf("FAIL: failed to identify tampered share")
+	}
+}
+
+func TestSigningKeysSerialization(t *testing.T) {
+	keys, err := sign.NewSigningKeys()
+	if err != nil {
+		t.Errorf("FAIL: could not create signing keys: %v", err)
+	}
+	ser, err := keys.Serialize()
+	if err != nil {
+		t.Errorf("FAIL: could not serialize keys: %v", err)
+	}
+	keys2, err := sign.DeserializeSigningKeys(ser)
+	if err != nil {
+		t.Errorf("FAIL: could not deserialize keys: %v", err)
+	}
+	if !bytes.Equal(keys.Public, keys2.Public) || !bytes.Equal(keys.Private, keys2.Private) {
+		t.Errorf("FAIL: serialization meeses sgining keys")
 	}
 }
