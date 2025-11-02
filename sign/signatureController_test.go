@@ -1,6 +1,7 @@
 package sign_test
 
 import (
+	"bytes"
 	"encoding/base64"
 	"github.com/naus3a/kaboom/sign"
 	"testing"
@@ -36,9 +37,9 @@ func TestShareSigning(t *testing.T) {
 	if !b {
 		t.Errorf("FAIL: verifying good signature failed")
 	}
-	
+
 	wrongKey, _ := sign.NewSigningKeys()
-	
+
 	wrongShares := wrongKey.SignShares(fakeShares)
 	b, _ = signed[0].VerifyShare(wrongShares[0])
 	if b {
@@ -53,5 +54,23 @@ func TestShareSigning(t *testing.T) {
 	b, _ = signed[0].VerifyShare(tampered)
 	if b {
 		t.Errorf("FAIL: failed to identify tampered share")
+	}
+}
+
+func TestSigningKeysSerialization(t *testing.T) {
+	keys, err := sign.NewSigningKeys()
+	if err != nil {
+		t.Errorf("FAIL: could not create signing keys: %v", err)
+	}
+	ser, err := keys.Serialize()
+	if err != nil {
+		t.Errorf("FAIL: could not serialize keys: %v", err)
+	}
+	keys2, err := sign.DeserializeSigningKeys(ser)
+	if err != nil {
+		t.Errorf("FAIL: could not deserialize keys: %v", err)
+	}
+	if !bytes.Equal(keys.Public, keys2.Public) || !bytes.Equal(keys.Private, keys2.Private) {
+		t.Errorf("FAIL: serialization meeses sgining keys")
 	}
 }
