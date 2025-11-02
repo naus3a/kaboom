@@ -91,10 +91,10 @@ func main(){
 	shares, err := key.Split(int(tFlag), int(sFlag))
 	cmd.ReportErrorAndExit(err)
 	
-	pub, priv, err := sign.MakeSigningKeys()
+	signKeys, err := sign.NewSigningKeys()
 	cmd.ReportErrorAndExit(err)
 
-	signedShares := sign.SignShares(pub, priv, shares)
+	signedShares := signKeys.SignShares(shares)
 	for i:=0; i<len(signedShares); i++{
 		fName := fmt.Sprintf("%s%s", signedShares[i].ShortId, cmd.ExtShare)
 		jsonData, err := signedShares[i].Serialize()

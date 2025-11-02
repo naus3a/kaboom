@@ -29,26 +29,26 @@ func (h *HeartBeat) GetData()([]byte, error){
 	return buf.Bytes(), nil
 }
 
-func NewHeartBeat(allGood bool, privKey []byte)(*HeartBeat, error){
+func NewHeartBeat(allGood bool, key *SigningKeys)(*HeartBeat, error){
 	now := time.Now()
 	epoch := now.Unix()
 	hb := &HeartBeat{
 		Epoch: epoch,
 		AllGood: allGood,
 	}
-	err := hb.sign(privKey)
+	err := hb.sign(key)
 	if err != nil {
 		return nil, err
 	}
 	return hb, nil
 }
 
-func (h *HeartBeat)sign(privKey []byte)( error){
+func (h *HeartBeat)sign(k *SigningKeys)(error){
 	data, err := h.GetData()
 	if err != nil{
 		return err
 	}
-	h.Signature = base64.RawURLEncoding.EncodeToString(SignData(data, privKey))
+	h.Signature = base64.RawURLEncoding.EncodeToString(k.SignData(data))
 	return nil
 }
 

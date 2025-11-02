@@ -12,19 +12,19 @@ func TestShareSigning(t *testing.T) {
 	fakeShares[1] = []byte("111111111")
 	fakeShares[2] = []byte("222222222")
 
-	pubKey, privKey, err := sign.MakeSigningKeys()
+	key, err := sign.NewSigningKeys()
 	if err != nil {
 		t.Errorf("FAIL: cannot generate keys")
 	}
 
-	signed := sign.SignShares(pubKey, privKey, fakeShares)
+	signed := key.SignShares(fakeShares)
 
 	//test the share making
 	for i := 0; i < len(signed); i++ {
 		if signed[i].Share != base64.RawURLEncoding.EncodeToString(fakeShares[i]) {
 			t.Errorf("FAIL: corrupted share")
 		}
-		if signed[i].AuthKey != base64.RawURLEncoding.EncodeToString(pubKey) {
+		if signed[i].AuthKey != base64.RawURLEncoding.EncodeToString(key.Public) {
 			t.Errorf("FAIL: corrupted authentication key")
 		}
 	}
@@ -36,9 +36,10 @@ func TestShareSigning(t *testing.T) {
 	if !b {
 		t.Errorf("FAIL: verifying good signature failed")
 	}
-
-	wrongPub, wrongPriv, _ := sign.MakeSigningKeys()
-	wrongShares := sign.SignShares(wrongPub, wrongPriv, fakeShares)
+	
+	wrongKey, _ := sign.NewSigningKeys()
+	
+	wrongShares := wrongKey.SignShares(fakeShares)
 	b, _ = signed[0].VerifyShare(wrongShares[0])
 	if b {
 		t.Errorf("FAIL: failed to identify different authentication key")
