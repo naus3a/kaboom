@@ -7,17 +7,19 @@ import (
 	"github.com/naus3a/kaboom/fs"
 	"github.com/naus3a/kaboom/payload"
 	"github.com/naus3a/kaboom/sign"
+	"github.com/naus3a/kaboom/remote"
 	"os"
 )
 
 const usage = `Usage:
-	kaboom-arm -p plaintext.file [-l localEncrypted.file] [-s 3] [-t 2] [-k signingkeys.file]
+kaboom-arm -p plaintext.file [-l localEncrypted.file] [-s 3] [-t 2] [-k signingkeys.file] [-g localhost:5001]
 
 Options:
 	-h, --help				this help screen
 	-v, --version			prints version
 	-p, --payload			the file you want to encrypt
-	-l, --local				the local version of the encrypted payload output
+	-l, --local			the local version of the encrypted payload output
+	-g, --gateway			thr ipfs gateway
 	-s, --shares			number of shares (default: 3)
 	-t, --threshold		share threshold (default: 2)
 	-n, --notes				extra notes for your payload
@@ -30,6 +32,7 @@ func main() {
 	var lFlag string
 	var nFlag string
 	var kFlag string
+	var gFlag string
 	var sFlag uint
 	var tFlag uint
 	var vFlag bool
@@ -44,6 +47,7 @@ func main() {
 	cmd.AddArg(&lFlag, "", "l", "local")
 	cmd.AddArg(&nFlag, "", "n", "notes")
 	cmd.AddArg(&kFlag, "signingkeys.sigb", "k", "signingkeys")
+	cmd.AddArg(&gFlag, "", "g", "gateway")
 	cmd.AddArg(&sFlag, 3, "s", "shares")
 	cmd.AddArg(&tFlag, 2, "t", "threshold")
 
@@ -67,9 +71,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if lFlag != "" {
-		hasPayloadOutput = true
-	}
+	hasPayloadOutput = lFlag != "" || gFlag != ""
 
 	if !hasPayloadOutput {
 		fmt.Println("You need at least 1 payload output")
@@ -80,7 +82,7 @@ func main() {
 	plaPayload, err := fs.LoadFile(pFlag)
 	cmd.ReportErrorAndExit(err)
 
-	key, err := payload.NewArmoredPayloadKey("TODO", nFlag)
+	key, err := payload.NewArmoredPayloadKey("", nFlag)
 	cmd.ReportErrorAndExit(err)
 
 	encPayload, err := key.Encrypt(plaPayload)
@@ -89,6 +91,13 @@ func main() {
 	if lFlag != "" {
 		err = fs.SaveFile(encPayload, lFlag)
 		cmd.ReportErrorAndExit(err)
+	}
+
+	if gFlag != ""{
+		ipfs := remote.NewIpfsRemoteController(lFlag)
+		rpi, err := ipfs.Add(encPayload)
+		cmd.ReportErrorAndExit(err)
+		key.IPFSAddress = rpi.Id
 	}
 
 	shares, err := key.Split(int(tFlag), int(sFlag))
