@@ -7,6 +7,8 @@ import(
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
+	drouting "github.com/libp2p/go-libp2p/p2p/discovery/routing"
+	dutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
 )
 
 func makeDHT(ctx context.Context, h host.Host) (*dht.IpfsDHT, error){
@@ -32,4 +34,35 @@ func makeDHT(ctx context.Context, h host.Host) (*dht.IpfsDHT, error){
 	}
 	wg.Wait()
 	return kDht, nil
+}
+
+func discoverPeers(ctx context.Context, h host.Host, topic string)error{
+	kDht, err := makeDHT(ctx, h)
+	if err != nil{
+		return err
+	}
+	routeDiscovery := drouting.NewRoutingDiscovery(kDht)
+	dutil.Advertise(ctx, routeDiscovery, topic)
+	anyConnected := false
+	for !anyConnected{
+		fmt.Println("Searching peers...")
+		peerChan, err := routeDiscovery.FindPeers(ctx, topic)
+		if err != nil {
+			return err
+		}
+		for peer := range peerChan{
+			if peer.ID == h.ID(){
+				//dont connect to self
+				continue
+			}
+			err := h.Connect(ctx, peer)
+			if err != nil{
+				return err
+			}
+			fmt.Println("Connected to ", peer.ID)
+			anyConnected = true
+		}
+	}
+	fmt.Println("Peer discovery complete.")
+	return nil
 }
