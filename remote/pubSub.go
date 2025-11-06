@@ -4,12 +4,22 @@ import(
 	"fmt"
 	"context"
 	"sync"
+	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	drouting "github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	dutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
 )
+
+func nakeHost()(host.Host, error){
+	return libp2p.New()
+		libp2p.ListenAddrStrings(
+			"/ip4/0.0.0.0/tcp/0",
+			"/ip6/::/tcp/0",
+		),
+	)
+}
 
 func makeDHT(ctx context.Context, h host.Host) (*dht.IpfsDHT, error){
 	kDht, err := dht.New(ctx, h)
