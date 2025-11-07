@@ -12,7 +12,26 @@ import(
 	dutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
 )
 
-func nakeHost()(host.Host, error){
+type PubSubCommsSender struct {
+	theHost host.Host
+}
+
+func NewPubSubCommsSendee(topic string, ctx context.Context)(*PubSubCommsSender, error){
+	h, err := makeHost()
+	if err != nil{
+		return nil, err
+	}
+	err = discoverPeers(ctx, h, topic)
+	if err != nil{
+		return nil, err
+	}
+	
+	return &PubSubCommsSender{
+		theHost: h,
+	}, nil
+} 
+
+func makeHost()(host.Host, error){
 	return libp2p.New(
 		libp2p.ListenAddrStrings(
 			"/ip4/0.0.0.0/tcp/0",
