@@ -10,24 +10,30 @@ import(
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	drouting "github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	dutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
 type PubSubCommsSender struct {
 	theHost host.Host
+	pubSub *pubsub.PubSub
 }
 
-func NewPubSubCommsSendee(topic string, ctx context.Context)(*PubSubCommsSender, error){
+func NewPubSubCommsSendee(channelName string, ctx context.Context)(*PubSubCommsSender, error){
 	h, err := makeHost()
 	if err != nil{
 		return nil, err
 	}
-	err = discoverPeers(ctx, h, topic)
+	err = discoverPeers(ctx, h, channelName)
 	if err != nil{
 		return nil, err
 	}
-	
+	ps, err := makePubSub(ctx, h, channelName)
+	if err != nil{
+		return nil, err
+	}
 	return &PubSubCommsSender{
 		theHost: h,
+		pubSub: ps,
 	}, nil
 } 
 
@@ -38,6 +44,14 @@ func makeHost()(host.Host, error){
 			"/ip6/::/tcp/0",
 		),
 	)
+}
+
+func makePubSub(ctx context.Context, h host.Host, channelName string)(*pubsub.PubSub, error){
+	ps, err := pubsub.NewGossipSub(ctx, h)
+	if err != nil {
+		return nil, err
+	}
+	return ps, nil	
 }
 
 func makeDHT(ctx context.Context, h host.Host) (*dht.IpfsDHT, error){
@@ -65,17 +79,17 @@ func makeDHT(ctx context.Context, h host.Host) (*dht.IpfsDHT, error){
 	return kDht, nil
 }
 
-func discoverPeers(ctx context.Context, h host.Host, topic string)error{
+func discoverPeers(ctx context.Context, h host.Host,  channelName string)error{
 	kDht, err := makeDHT(ctx, h)
 	if err != nil{
 		return err
 	}
 	routeDiscovery := drouting.NewRoutingDiscovery(kDht)
-	dutil.Advertise(ctx, routeDiscovery, topic)
+	dutil.Advertise(ctx, routeDiscovery, channelName)
 	anyConnected := false
 	for !anyConnected{
 		fmt.Println("Searching peers...")
-		peerChan, err := routeDiscovery.FindPeers(ctx, topic)
+		peerChan, err := routeDiscovery.FindPeers(ctx, channelName)
 		if err != nil {
 			return err
 		}
