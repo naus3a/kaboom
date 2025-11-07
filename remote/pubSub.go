@@ -19,19 +19,28 @@ type PubSubCommsSender struct {
 	topic *pubsub.Topic
 }
 
-func NewPubSubCommsSendee(channelName string, ctx context.Context)(*PubSubCommsSender, error){
+func NewPubSubCommsSender(channelName string, ctx context.Context)(*PubSubCommsSender, error){
+	fmt.Print("Creating host...")
 	h, err := makeHost()
 	if err != nil{
+		fmt.Print("failed :(\n")
 		return nil, err
 	}
+	fmt.Print("done!\n")
+	fmt.Print("Discovering peers...")
 	err = discoverPeers(ctx, h, channelName)
 	if err != nil{
+		fmt.Print("failed :(\n")
 		return nil, err
 	}
+	fmt.Print("done!\n")
+	fmt.Print("Setting up pubsub...")
 	ps, topic, err := makePubSub(ctx, h, channelName)
 	if err != nil{
+		fmt.Print("failed :(\n")
 		return nil, err
 	}
+	fmt.Print("done!\n")
 	return &PubSubCommsSender{
 		theHost: h,
 		pubSub: ps,
