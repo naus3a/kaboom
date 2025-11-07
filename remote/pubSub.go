@@ -13,7 +13,7 @@ import(
 )
 
 func nakeHost()(host.Host, error){
-	return libp2p.New()
+	return libp2p.New(
 		libp2p.ListenAddrStrings(
 			"/ip4/0.0.0.0/tcp/0",
 			"/ip6/::/tcp/0",
