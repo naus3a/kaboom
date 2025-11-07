@@ -28,7 +28,7 @@ func NewPubSubCommsSender(channelName string, ctx context.Context)(*PubSubCommsS
 	}
 	fmt.Print("done!\n")
 	fmt.Print("Discovering peers...")
-	err = discoverPeers(ctx, h, channelName)
+	go discoverPeers(ctx, h, channelName)
 	if err != nil{
 		fmt.Print("failed :(\n")
 		return nil, err
@@ -94,10 +94,10 @@ func makeDHT(ctx context.Context, h host.Host) (*dht.IpfsDHT, error){
 	return kDht, nil
 }
 
-func discoverPeers(ctx context.Context, h host.Host,  channelName string)error{
+func discoverPeers(ctx context.Context, h host.Host,  channelName string){
 	kDht, err := makeDHT(ctx, h)
 	if err != nil{
-		return err
+		panic(err)
 	}
 	routeDiscovery := drouting.NewRoutingDiscovery(kDht)
 	dutil.Advertise(ctx, routeDiscovery, channelName)
@@ -106,7 +106,7 @@ func discoverPeers(ctx context.Context, h host.Host,  channelName string)error{
 		fmt.Println("Searching peers...")
 		peerChan, err := routeDiscovery.FindPeers(ctx, channelName)
 		if err != nil {
-			return err
+			panic(err)
 		}
 		for peer := range peerChan{
 			if peer.ID == h.ID(){
@@ -115,12 +115,11 @@ func discoverPeers(ctx context.Context, h host.Host,  channelName string)error{
 			}
 			err := h.Connect(ctx, peer)
 			if err != nil{
-				return err
+				panic(err)
 			}
 			fmt.Println("Connected to ", peer.ID)
 			anyConnected = true
 		}
 	}
 	fmt.Println("Peer discovery complete.")
-	return nil
 }
