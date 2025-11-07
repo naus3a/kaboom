@@ -16,6 +16,7 @@ import(
 type PubSubCommsSender struct {
 	theHost host.Host
 	pubSub *pubsub.PubSub
+	topic *pubsub.Topic
 }
 
 func NewPubSubCommsSendee(channelName string, ctx context.Context)(*PubSubCommsSender, error){
@@ -27,13 +28,14 @@ func NewPubSubCommsSendee(channelName string, ctx context.Context)(*PubSubCommsS
 	if err != nil{
 		return nil, err
 	}
-	ps, err := makePubSub(ctx, h, channelName)
+	ps, topic, err := makePubSub(ctx, h, channelName)
 	if err != nil{
 		return nil, err
 	}
 	return &PubSubCommsSender{
 		theHost: h,
 		pubSub: ps,
+		topic: topic,
 	}, nil
 } 
 
@@ -46,12 +48,16 @@ func makeHost()(host.Host, error){
 	)
 }
 
-func makePubSub(ctx context.Context, h host.Host, channelName string)(*pubsub.PubSub, error){
+func makePubSub(ctx context.Context, h host.Host, channelName string)(*pubsub.PubSub, *pubsub.Topic, error){
 	ps, err := pubsub.NewGossipSub(ctx, h)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return ps, nil	
+	topic, err := ps.Join(channelName)
+	if err != nil {
+		return nil, nil, err
+	}
+	return ps, topic, nil	
 }
 
 func makeDHT(ctx context.Context, h host.Host) (*dht.IpfsDHT, error){
