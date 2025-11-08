@@ -13,36 +13,27 @@ import(
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
-type PubSubCommsSender struct {
+type PubSubComms struct {
 	theCtx context.Context
 	theHost host.Host
 	pubSub *pubsub.PubSub
 	topic *pubsub.Topic
 }
 
-func NewPubSubCommsSender(channelName string, ctx context.Context)(*PubSubCommsSender, error){
-	fmt.Print("Creating host...")
+func NewPubSubComms(channelName string, ctx context.Context)(*PubSubComms, error){
 	h, err := makeHost()
 	if err != nil{
-		fmt.Print("failed :(\n")
 		return nil, err
 	}
-	fmt.Print("done!\n")
-	fmt.Print("Discovering peers...")
 	go discoverPeers(ctx, h, channelName)
 	if err != nil{
-		fmt.Print("failed :(\n")
 		return nil, err
 	}
-	fmt.Print("done!\n")
-	fmt.Print("Setting up pubsub...")
 	ps, topic, err := makePubSub(ctx, h, channelName)
 	if err != nil{
-		fmt.Print("failed :(\n")
 		return nil, err
 	}
-	fmt.Print("done!\n")
-	return &PubSubCommsSender{
+	return &PubSubComms{
 		theCtx: ctx,
 		theHost: h,
 		pubSub: ps,
@@ -50,7 +41,7 @@ func NewPubSubCommsSender(channelName string, ctx context.Context)(*PubSubCommsS
 	}, nil
 } 
 
-func (s *PubSubCommsSender)Send(msg []byte)error{
+func (s *PubSubComms)Send(msg []byte)error{
 	return s.topic.Publish(s.theCtx, msg)
 }
 
