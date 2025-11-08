@@ -22,4 +22,8 @@ func TestPubSubSender(t *testing.T){
 	if err != nil {
 		t.Errorf("FAIL: cannot send message: %v", err)
 	}
+	err = comms.Listen()
+	if err != nil{
+		t.Errorf("FAIL: cannot listen to topic: %v", err)
+	}
 }

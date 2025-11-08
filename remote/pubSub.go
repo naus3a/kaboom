@@ -18,6 +18,7 @@ type PubSubComms struct {
 	theHost host.Host
 	pubSub *pubsub.PubSub
 	topic *pubsub.Topic
+	sub *pubsub.Subscription
 }
 
 func NewPubSubComms(channelName string, ctx context.Context)(*PubSubComms, error){
@@ -41,8 +42,24 @@ func NewPubSubComms(channelName string, ctx context.Context)(*PubSubComms, error
 	}, nil
 } 
 
-func (s *PubSubComms)Send(msg []byte)error{
-	return s.topic.Publish(s.theCtx, msg)
+func (c *PubSubComms)Send(msg []byte)error{
+	return c.topic.Publish(c.theCtx, msg)
+}
+
+func (c* PubSubComms)IsListening()bool{
+	return c.sub != nil
+}
+
+func (c *PubSubComms)Listen()error{
+	if c.IsListening() {
+		return nil
+	}
+	if c.topic == nil {
+		return fmt.Errorf("pubsub topic os not ready")
+	}
+	var err error
+	c.sub, err = c.topic.Subscribe()
+	return err
 }
 
 func makeHost()(host.Host, error){
