@@ -14,6 +14,7 @@ import(
 )
 
 type PubSubCommsSender struct {
+	theCtx context.Context
 	theHost host.Host
 	pubSub *pubsub.PubSub
 	topic *pubsub.Topic
@@ -42,11 +43,16 @@ func NewPubSubCommsSender(channelName string, ctx context.Context)(*PubSubCommsS
 	}
 	fmt.Print("done!\n")
 	return &PubSubCommsSender{
+		theCtx: ctx,
 		theHost: h,
 		pubSub: ps,
 		topic: topic,
 	}, nil
 } 
+
+func (s *PubSubCommsSender)Send(msg []byte)error{
+	return s.topic.Publish(s.theCtx, msg)
+}
 
 func makeHost()(host.Host, error){
 	return libp2p.New(

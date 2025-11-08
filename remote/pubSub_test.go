@@ -14,8 +14,12 @@ func TestPubSubSender(t *testing.T){
 		},
 	)
 
-	_, err := remote.NewPubSubCommsSender("cippa", ctx)
+	sender, err := remote.NewPubSubCommsSender("cippa", ctx)
 	if err!= nil {
 		t.Errorf("FAIL: cannot create a pubsub sender: %v", err)
+	}
+	err = sender.Send([]byte("cippa"))
+	if err != nil {
+		t.Errorf("FAIL: cannot send message: %v", err)
 	}
 }
