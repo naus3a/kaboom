@@ -15,6 +15,32 @@ const ExtKey = ".keyb"
 const ExtPlain = ".plab"
 const ExtSignKey = ".sigb"
 
+type AnsiCode int
+
+const (
+	Reset AnsiCode = iota
+	Red
+	Green
+	Yellow
+	Blue
+)
+
+var ansiCodes = [] string{
+	"\033[0m",
+	"\033[31m",
+	"\033[32m",
+	"\033[33m",
+	"\033[34m",
+}
+
+func GetAnsiCode(ac AnsiCode) string{
+	return ansiCodes[ac]
+}
+
+func ColorPrintln(txt string, ac AnsiCode){
+	fmt.Println(GetAnsiCode(ac)+txt+GetAnsiCode(Reset))
+}
+
 type AllowedArgType interface {
 	bool | uint | string
 }
@@ -48,7 +74,7 @@ func AddArg[T AllowedArgType](arg *T, defaultValue T, commands ...string) error 
 
 func ReportErrorAndExit(err error) {
 	if err != nil {
-		fmt.Printf("%v", err)
+		fmt.Printf("%s%v%s\n", GetAnsiCode(Red),err,GetAnsiCode(Reset))
 		os.Exit(1)
 	}
 }
