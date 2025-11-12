@@ -9,7 +9,7 @@ import(
 
 func main(){
 	ctx := context.Background()
-	_, err := remote.NewPubSubComms("cippa", ctx)
+	comms, err := remote.NewPubSubComms("cippa", ctx)
 	cmd.ReportErrorAndExit(err)
-	cmd.ColorPrintln("\nHost created.\n", cmd.Green)	
+	comms.DiscoverPeers()
 }
