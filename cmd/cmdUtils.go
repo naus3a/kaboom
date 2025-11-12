@@ -23,6 +23,7 @@ const (
 	Green
 	Yellow
 	Blue
+	ClearLine
 )
 
 var ansiCodes = [] string{
@@ -31,14 +32,19 @@ var ansiCodes = [] string{
 	"\033[32m",
 	"\033[33m",
 	"\033[34m",
+	"\033[K",
 }
 
 func GetAnsiCode(ac AnsiCode) string{
 	return ansiCodes[ac]
 }
 
+func ColorString(txt string, ac AnsiCode)string{
+	return GetAnsiCode(ac) + txt + GetAnsiCode(Reset)
+}
+
 func ColorPrintln(txt string, ac AnsiCode){
-	fmt.Println(GetAnsiCode(ac)+txt+GetAnsiCode(Reset))
+	fmt.Println(ColorString(txt, ac))
 }
 
 type AllowedArgType interface {

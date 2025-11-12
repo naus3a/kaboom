@@ -1,7 +1,7 @@
 package main
 
 import(
-//	"fmt"
+	"fmt"
 	"context"
 	"github.com/naus3a/kaboom/cmd"
 	"github.com/naus3a/kaboom/remote"
@@ -13,10 +13,13 @@ func main(){
 	cmd.ReportErrorAndExit(err)
 	
 	comms.OnPeerConnected = func(){
-		cmd.ColorPrintln("Sending msg...", cmd.Green)
+		fmt.Print(cmd.ColorString("Sending Message...", cmd.Yellow))
+		
 		err = comms.Send([]byte("cippa"))
 		if err!= nil{
-			cmd.ColorPrintln("...done", cmd.Green)
+			fmt.Println("\r"+cmd.GetAnsiCode(cmd.ClearLine)+cmd.ColorString("Message sent.", cmd.Green))
+		}else{
+			fmt.Println("\r"+cmd.GetAnsiCode(cmd.ClearLine)+cmd.ColorString("Message failed.", cmd.Red))
 		}
 	}
 	comms.DiscoverPeers()
