@@ -24,6 +24,8 @@ type PubSubComms struct {
 	theDht *dht.IpfsDHT
 	route *drouting.RoutingDiscovery
 	hasConnectedPeers bool
+
+	OnPeerConnected func()
 }
 
 func NewPubSubComms(channelName string, ctx context.Context)(*PubSubComms, error){
@@ -62,6 +64,7 @@ func NewPubSubComms(channelName string, ctx context.Context)(*PubSubComms, error
 		theDht: kDht,
 		route: routeDiscovery,
 		hasConnectedPeers: false,
+		OnPeerConnected: nil,
 
 	}, nil
 } 
@@ -88,11 +91,21 @@ func (c *PubSubComms) DiscoverPeers(){
 			if err==nil{
 				txt := fmt.Sprintf("Connected to %s", peer.ID)
 				cmd.ColorPrintln(txt, cmd.Green)
+				if c.OnPeerConnected != nil{
+					c.OnPeerConnected()
+				}
 				c.hasConnectedPeers=true
 			}
 		}
 	}
 	cmd.ColorPrintln("Discovery complete", cmd.Green)
+}
+
+func (c *PubSubComms) Send(data []byte) error{
+	if !c.hasConnectedPeers {
+		return fmt.Errorf("Caannot send data, because not connected to any peer")
+	}
+	return c.topic.Publish(c.theCtx, data)
 }
 
 func makeHost()(host.Host, error){
