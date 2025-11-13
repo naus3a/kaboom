@@ -2,26 +2,26 @@ package remote
 
 import (
 	"context"
-	// "fmt"
+	"fmt"
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
-	// "github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 	drouting "github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	// dutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
 	// "github.com/naus3a/kaboom/cmd"
-	// "sync"
+	"sync"
 )
 
 type PubSubComms struct {
-	chanName          string
+	ChanName          string
 	TheCtx            context.Context
 	TheHost           host.Host
 	pubSub            *pubsub.PubSub
 	Topic             *pubsub.Topic
 	Sub               *pubsub.Subscription
-	theDht            *dht.IpfsDHT
+	TheDht            *dht.IpfsDHT
 	route             *drouting.RoutingDiscovery
 	hasConnectedPeers bool
 
@@ -31,6 +31,7 @@ type PubSubComms struct {
 func NewPubSubComms(channelName string, ctx context.Context) (*PubSubComms, error) {
 	c := new(PubSubComms)
 	var err error
+	c.ChanName = channelName
 	c.TheCtx = ctx
 	c.TheHost, err = libp2p.New(libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/0"))
 
@@ -47,12 +48,15 @@ func NewPubSubComms(channelName string, ctx context.Context) (*PubSubComms, erro
 }
 
 func (c *PubSubComms) InitPubSub() error {
+	if c.TheCtx == nil || c.TheHost == nil {
+		return fmt.Errorf("Cannot init PubSub: not initialized")
+	}
 	var err error
 	c.pubSub, err = pubsub.NewGossipSub(c.TheCtx, c.TheHost)
 	if err != nil {
 		return err
 	}
-	c.Topic, err = c.pubSub.Join(c.chanName)
+	c.Topic, err = c.pubSub.Join(c.ChanName)
 	if err != nil {
 		return err
 	}
@@ -60,9 +64,42 @@ func (c *PubSubComms) InitPubSub() error {
 }
 
 func (c *PubSubComms) Listen() error {
+	if c.Topic == nil {
+		return fmt.Errorf("Cannot listen: not initialized")
+	}
 	var err error
 	c.Sub, err = c.Topic.Subscribe()
 	return err
+}
+
+func (c *PubSubComms) InitDHT() error {
+	if c.TheCtx == nil || c.TheHost == nil {
+		return fmt.Errorf("Cannot init DHT: not initialized")
+	}
+	var err error
+	c.TheDht, err = dht.New(c.TheCtx, c.TheHost)
+	if err != nil {
+		return err
+	}
+	err = c.TheDht.Bootstrap(c.TheCtx)
+	if err != nil {
+		return err
+	}
+	var wg sync.WaitGroup
+	for _, peerAddr := range dht.DefaultBootstrapPeers {
+		peerInfo, _ := peer.AddrInfoFromP2pAddr(peerAddr)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			var err error
+			err = c.TheHost.Connect(c.TheCtx, *peerInfo)
+			if err != nil {
+
+			}
+		}()
+	}
+	wg.Wait()
+	return nil
 }
 
 /*

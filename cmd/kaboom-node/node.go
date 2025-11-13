@@ -28,13 +28,15 @@ func main() {
 
 	comms, err := remote.NewPubSubComms(topicNameFlag, ctx)
 	cmd.ReportErrorAndExit(err)
+	cmd.ColorPrintln("Comms ready.", cmd.Green)
 
-	go discoverPeers(comms.TheCtx, comms.TheHost)
+	go discoverPeers(comms)
 
 	go streamConsoleTo(comms.TheCtx, comms.Topic)
 
 	err = comms.Listen()
 	cmd.ReportErrorAndExit(err)
+	cmd.ColorPrintln("Listening.", cmd.Green)
 
 	printMessagesFrom(comms.TheCtx, comms.Sub)
 }
@@ -67,24 +69,27 @@ func initDHT(ctx context.Context, h host.Host) *dht.IpfsDHT {
 	return kademliaDHT
 }
 
-func discoverPeers(ctx context.Context, h host.Host) {
-	kademliaDHT := initDHT(ctx, h)
-	routingDiscovery := drouting.NewRoutingDiscovery(kademliaDHT)
-	dutil.Advertise(ctx, routingDiscovery, topicNameFlag)
+func discoverPeers(c *remote.PubSubComms) {
+	//kademliaDHT := initDHT(ctx, h)
+	err := c.InitDHT()
+	cmd.ReportErrorAndExit(err)
+
+	routingDiscovery := drouting.NewRoutingDiscovery(c.TheDht)
+	dutil.Advertise(c.TheCtx, routingDiscovery, c.ChanName)
 
 	// Look for others who have announced and attempt to connect to them
 	anyConnected := false
 	for !anyConnected {
 		fmt.Println("Searching for peers...")
-		peerChan, err := routingDiscovery.FindPeers(ctx, topicNameFlag)
+		peerChan, err := routingDiscovery.FindPeers(c.TheCtx, c.ChanName)
 		if err != nil {
 			panic(err)
 		}
 		for peer := range peerChan {
-			if peer.ID == h.ID() {
+			if peer.ID == c.TheHost.ID() {
 				continue // No self connection
 			}
-			err := h.Connect(ctx, peer)
+			err := c.TheHost.Connect(c.TheCtx, peer)
 			if err != nil {
 				//fmt.Printf("Failed connecting to %s, error: %s\n", peer.ID, err)
 			} else {
