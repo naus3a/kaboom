@@ -108,6 +108,16 @@ func (c *PubSubComms) Send(data []byte) error{
 	return c.topic.Publish(c.theCtx, data)
 }
 
+func (c *PubSubComms) Listen()error{
+	if c.topic == nil{
+		return fmt.Errorf("Comms not initializwd")
+	}
+	var err error
+	c.sub, err = c.topic.Subscribe()
+	return err
+
+}
+
 func makeHost()(host.Host, error){
 	return libp2p.New(libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/0"))
 }
