@@ -25,7 +25,7 @@ func main() {
 	cmd.ReportErrorAndExit(err)
 	cmd.ColorPrintln("Comms ready.", cmd.Green)
 
-	go discoverPeers(comms)
+	go comms.DiscoverPeers()
 
 	go streamConsoleTo(comms.TheCtx, comms.Topic)
 

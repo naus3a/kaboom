@@ -9,8 +9,8 @@ import (
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 	drouting "github.com/libp2p/go-libp2p/p2p/discovery/routing"
-	// dutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
-	// "github.com/naus3a/kaboom/cmd"
+	dutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
+	"github.com/naus3a/kaboom/cmd"
 	"sync"
 )
 
@@ -102,77 +102,24 @@ func (c *PubSubComms) InitDHT() error {
 	return nil
 }
 
-/*
-func NewPubSubComms(channelName string, ctx context.Context) (*PubSubComms, error) {
-	comms := new(PubSubComms)
-	var err error
-	comms.chanName = channelName
-	comms.theCtx = ctx
-	comms.theHost, err = libp2p.New(libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/0"))
-	if err != nil {
-		return nil, err
-	}
-	go discoverPeers(comms.theCtx, comms.theHost, comms.chanName)
-	comms.pubSub, err = pubsub.NewGossipSub(comms.theCtx, comms.theHost)
-	if err != nil {
-		return nil, err
-	}
-	comms.topic, err = comms.pubSub.Join(comms.chanName)
-	if err != nil {
-		return nil, err
-	}
-
-	return comms, nil
-}
-
-func initDHT(ctx context.Context, h host.Host) *dht.IpfsDHT {
-	// Start a DHT, for use in peer discovery. We can't just make a new DHT
-	// client because we want each peer to maintain its own local copy of the
-	// DHT, so that the bootstrapping node of the DHT can go down without
-	// inhibiting future peer discovery.
-	kademliaDHT, err := dht.New(ctx, h)
-	if err != nil {
-		panic(err)
-	}
-	if err = kademliaDHT.Bootstrap(ctx); err != nil {
-		panic(err)
-	}
-	var wg sync.WaitGroup
-	for _, peerAddr := range dht.DefaultBootstrapPeers {
-		peerinfo, _ := peer.AddrInfoFromP2pAddr(peerAddr)
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			if err := h.Connect(ctx, *peerinfo); err != nil {
-				fmt.Println("Bootstrap warning:", err)
-			}
-		}()
-	}
-	wg.Wait()
-
-	return kademliaDHT
-}
-
-func discoverPeers(ctx context.Context, h host.Host, chanName string) {
-	kademliaDHT := initDHT(ctx, h)
-	routingDiscovery := drouting.NewRoutingDiscovery(kademliaDHT)
-	dutil.Advertise(ctx, routingDiscovery, chanName)
-
-	// Look for others who have announced and attempt to connect to them
+func (c *PubSubComms) DiscoverPeers() {
+	err := c.InitDHT()
+	cmd.ReportErrorAndExit(err)
+	routingDiscovery := drouting.NewRoutingDiscovery(c.TheDht)
+	dutil.Advertise(c.TheCtx, routingDiscovery, c.ChanName)
 	anyConnected := false
 	for !anyConnected {
 		fmt.Println("Searching for peers...")
-		peerChan, err := routingDiscovery.FindPeers(ctx, chanName)
+		peerChan, err := routingDiscovery.FindPeers(c.TheCtx, c.ChanName)
 		if err != nil {
 			panic(err)
 		}
 		for peer := range peerChan {
-			if peer.ID == h.ID() {
+			if peer.ID == c.TheHost.ID() {
 				continue // No self connection
 			}
-			err := h.Connect(ctx, peer)
+			err := c.TheHost.Connect(c.TheCtx, peer)
 			if err != nil {
-				fmt.Printf("Failed connecting to %s, error: %s\n", peer.ID, err)
 			} else {
 				fmt.Println("Connected to:", peer.ID)
 				anyConnected = true
@@ -181,4 +128,3 @@ func discoverPeers(ctx context.Context, h host.Host, chanName string) {
 	}
 	fmt.Println("Peer discovery complete")
 }
-*/
