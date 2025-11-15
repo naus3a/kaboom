@@ -109,7 +109,7 @@ func (c *PubSubComms) DiscoverPeers() {
 	dutil.Advertise(c.TheCtx, routingDiscovery, c.ChanName)
 	anyConnected := false
 	for !anyConnected {
-		fmt.Println("Searching for peers...")
+		cmd.ColorPrintln("Searching for peers...", cmd.Yellow)
 		peerChan, err := routingDiscovery.FindPeers(c.TheCtx, c.ChanName)
 		if err != nil {
 			panic(err)
@@ -121,10 +121,10 @@ func (c *PubSubComms) DiscoverPeers() {
 			err := c.TheHost.Connect(c.TheCtx, peer)
 			if err != nil {
 			} else {
-				fmt.Println("Connected to:", peer.ID)
+				cmd.ColorPrintln(fmt.Sprintf("Connected to %s", peer.ID), cmd.Green)
 				anyConnected = true
 			}
 		}
 	}
-	fmt.Println("Peer discovery complete")
+	cmd.ColorPrintln("Peer discovery complete.", cmd.Green)
 }

@@ -10,8 +10,8 @@ import (
 	"os"
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	drouting "github.com/libp2p/go-libp2p/p2p/discovery/routing"
-	dutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
+	//drouting "github.com/libp2p/go-libp2p/p2p/discovery/routing"
+	//dutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
 )
 
 var topicNameFlag string
@@ -34,38 +34,6 @@ func main() {
 	cmd.ColorPrintln("Listening.", cmd.Green)
 
 	printMessagesFrom(comms.TheCtx, comms.Sub)
-}
-
-func discoverPeers(c *remote.PubSubComms) {
-	//kademliaDHT := initDHT(ctx, h)
-	err := c.InitDHT()
-	cmd.ReportErrorAndExit(err)
-
-	routingDiscovery := drouting.NewRoutingDiscovery(c.TheDht)
-	dutil.Advertise(c.TheCtx, routingDiscovery, c.ChanName)
-
-	// Look for others who have announced and attempt to connect to them
-	anyConnected := false
-	for !anyConnected {
-		fmt.Println("Searching for peers...")
-		peerChan, err := routingDiscovery.FindPeers(c.TheCtx, c.ChanName)
-		if err != nil {
-			panic(err)
-		}
-		for peer := range peerChan {
-			if peer.ID == c.TheHost.ID() {
-				continue // No self connection
-			}
-			err := c.TheHost.Connect(c.TheCtx, peer)
-			if err != nil {
-				//fmt.Printf("Failed connecting to %s, error: %s\n", peer.ID, err)
-			} else {
-				fmt.Println("Connected to:", peer.ID)
-				anyConnected = true
-			}
-		}
-	}
-	fmt.Println("Peer discovery complete")
 }
 
 func streamConsoleTo(ctx context.Context, topic *pubsub.Topic) {
