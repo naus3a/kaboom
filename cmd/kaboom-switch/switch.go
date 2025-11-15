@@ -10,8 +10,6 @@ import (
 	"os"
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	//drouting "github.com/libp2p/go-libp2p/p2p/discovery/routing"
-	//dutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
 )
 
 var topicNameFlag string
@@ -27,7 +25,7 @@ func main() {
 
 	go comms.DiscoverPeers()
 
-	go streamConsoleTo(comms.TheCtx, comms.Topic)
+	go streamConsoleTo(comms)
 
 	err = comms.Listen()
 	cmd.ReportErrorAndExit(err)
@@ -36,14 +34,14 @@ func main() {
 	printMessagesFrom(comms.TheCtx, comms.Sub)
 }
 
-func streamConsoleTo(ctx context.Context, topic *pubsub.Topic) {
+func streamConsoleTo(c *remote.PubSubComms) {
 	reader := bufio.NewReader(os.Stdin)
 	for {
 		s, err := reader.ReadString('\n')
 		if err != nil {
 			panic(err)
 		}
-		if err := topic.Publish(ctx, []byte(s)); err != nil {
+		if err := c.Send([]byte(s)); err != nil {
 			fmt.Println("### Publish error:", err)
 		}
 	}

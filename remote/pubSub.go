@@ -102,6 +102,10 @@ func (c *PubSubComms) InitDHT() error {
 	return nil
 }
 
+func (c *PubSubComms) Send(data []byte) error {
+	return c.Topic.Publish(c.TheCtx, data)
+}
+
 func (c *PubSubComms) DiscoverPeers() {
 	err := c.InitDHT()
 	cmd.ReportErrorAndExit(err)
