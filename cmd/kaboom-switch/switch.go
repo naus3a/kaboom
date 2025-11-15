@@ -21,6 +21,9 @@ func main() {
 
 	comms, err := remote.NewPubSubComms(topicNameFlag, ctx)
 	cmd.ReportErrorAndExit(err)
+	comms.OnPeerConnected = func() {
+		comms.Send([]byte("cippa"))
+	}
 	cmd.ColorPrintln("Comms ready.", cmd.Green)
 
 	go comms.DiscoverPeers()

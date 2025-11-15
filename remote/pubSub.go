@@ -131,4 +131,7 @@ func (c *PubSubComms) DiscoverPeers() {
 		}
 	}
 	cmd.ColorPrintln("Peer discovery complete.", cmd.Green)
+	if c.OnPeerConnected != nil {
+		c.OnPeerConnected()
+	}
 }
