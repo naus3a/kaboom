@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"github.com/naus3a/kaboom/cmd"
 	"github.com/naus3a/kaboom/remote"
-
-	"bufio"
 	"os"
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -23,6 +21,7 @@ func main() {
 	cmd.ReportErrorAndExit(err)
 	comms.OnPeerConnected = func() {
 		comms.Send([]byte("cippa"))
+		cmd.ColorPrintln("Heartbeat delivered.", cmd.Green)
 	}
 	cmd.ColorPrintln("Comms ready.", cmd.Green)
 
@@ -35,19 +34,6 @@ func main() {
 	printMessagesFrom(comms.TheCtx, comms.Sub)
 }
 
-func streamConsoleTo(c *remote.PubSubComms) {
-	reader := bufio.NewReader(os.Stdin)
-	for {
-		s, err := reader.ReadString('\n')
-		if err != nil {
-			panic(err)
-		}
-		if err := c.Send([]byte(s)); err != nil {
-			fmt.Println("### Publish error:", err)
-		}
-	}
-}
-
 func printMessagesFrom(ctx context.Context, sub *pubsub.Subscription) {
 	for {
 		m, err := sub.Next(ctx)
@@ -55,5 +41,6 @@ func printMessagesFrom(ctx context.Context, sub *pubsub.Subscription) {
 			panic(err)
 		}
 		fmt.Println(m.ReceivedFrom, ": ", string(m.Message.Data))
+		os.Exit(0)
 	}
 }
