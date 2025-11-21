@@ -28,8 +28,6 @@ func main() {
 
 	go comms.DiscoverPeers()
 
-	go streamConsoleTo(comms)
-
 	err = comms.Listen()
 	cmd.ReportErrorAndExit(err)
 	cmd.ColorPrintln("Listening.", cmd.Green)
