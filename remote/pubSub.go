@@ -72,6 +72,17 @@ func (c *PubSubComms) Listen() error {
 	return err
 }
 
+func (c* PubSubComms) ParseMessages(){
+	for{
+		m, err := c.Sub.Next(c.TheCtx)
+		if err!= nil{
+			continue
+		}
+		cmd.ColorPrintln(fmt.Sprintf("%s: %s", string(m.ReceivedFrom), string(m.Message.Data)), cmd.Green)
+		return
+	}
+}
+
 func (c *PubSubComms) InitDHT() error {
 	if c.TheCtx == nil || c.TheHost == nil {
 		return fmt.Errorf("Cannot init DHT: not initialized")
