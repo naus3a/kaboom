@@ -10,8 +10,6 @@ import (
 	"os"
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	//drouting "github.com/libp2p/go-libp2p/p2p/discovery/routing"
-	//dutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
 )
 
 var topicNameFlag string

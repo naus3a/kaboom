@@ -78,7 +78,7 @@ func (c* PubSubComms) ParseMessages(){
 		if err!= nil{
 			continue
 		}
-		cmd.ColorPrintln(fmt.Sprintf("%s: %s", string(m.ReceivedFrom), string(m.Message.Data)), cmd.Green)
+		cmd.ColorPrintln(fmt.Sprintf("%s: %s", m.ReceivedFrom, string(m.Message.Data)), cmd.Green)
 		return
 	}
 }
