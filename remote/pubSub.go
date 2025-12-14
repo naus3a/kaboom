@@ -48,6 +48,13 @@ func NewPubSubComms(channelName string, ctx context.Context) (*PubSubComms, erro
 	return c, nil
 }
 
+func (c *PubSubComms) GetMyId()(peer.ID	, error){
+	if c.theHost==nil {
+		return peer.ID(""), fmt.Errorf("host not ready")
+	}
+	return c.theHost.ID(), nil
+}
+
 func (c *PubSubComms) initPubSub() error {
 	if c.theCtx == nil || c.theHost == nil {
 		return fmt.Errorf("Cannot init PubSub: not initialized")

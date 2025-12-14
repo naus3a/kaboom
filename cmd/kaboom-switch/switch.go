@@ -17,8 +17,13 @@ func main() {
 		comms.Send([]byte("cippa"))
 		cmd.ColorPrintln("Heartbeat delivered.", cmd.Green)
 	}
-	comms.OnMessageParsed = func(*pubsub.Message){
-		os.Exit(0)
+	comms.OnMessageParsed = func(m *pubsub.Message ){
+		myId, err := comms.GetMyId()
+		if err == nil{
+			if myId == m.ReceivedFrom{
+				os.Exit(0)
+			}
+		}
 	}
 	cmd.ColorPrintln("Comms ready.", cmd.Green)
 
