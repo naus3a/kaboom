@@ -2,9 +2,10 @@ package main
 
 import (
 	"context"
-
+	"os"
 	"github.com/naus3a/kaboom/cmd"
 	"github.com/naus3a/kaboom/remote"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
 func main() {
@@ -15,6 +16,9 @@ func main() {
 	comms.OnPeerConnected = func() {
 		comms.Send([]byte("cippa"))
 		cmd.ColorPrintln("Heartbeat delivered.", cmd.Green)
+	}
+	comms.OnMessageParsed = func(*pubsub.Message){
+		os.Exit(0)
 	}
 	cmd.ColorPrintln("Comms ready.", cmd.Green)
 

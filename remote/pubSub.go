@@ -15,31 +15,32 @@ import (
 )
 
 type PubSubComms struct {
-	ChanName          string
-	TheCtx            context.Context
-	TheHost           host.Host
+	chanName          string
+	theCtx            context.Context
+	theHost           host.Host
 	pubSub            *pubsub.PubSub
-	Topic             *pubsub.Topic
-	Sub               *pubsub.Subscription
-	TheDht            *dht.IpfsDHT
+	topic             *pubsub.Topic
+	sub               *pubsub.Subscription
+	theDht            *dht.IpfsDHT
 	route             *drouting.RoutingDiscovery
 	hasConnectedPeers bool
 
 	OnPeerConnected func()
+	OnMessageParsed func(*pubsub.Message)
 }
 
 func NewPubSubComms(channelName string, ctx context.Context) (*PubSubComms, error) {
 	c := new(PubSubComms)
 	var err error
-	c.ChanName = channelName
-	c.TheCtx = ctx
-	c.TheHost, err = libp2p.New(libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/0"))
+	c.chanName = channelName
+	c.theCtx = ctx
+	c.theHost, err = libp2p.New(libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/0"))
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = c.InitPubSub()
+	err = c.initPubSub()
 	if err != nil {
 		return nil, err
 	}
@@ -47,16 +48,16 @@ func NewPubSubComms(channelName string, ctx context.Context) (*PubSubComms, erro
 	return c, nil
 }
 
-func (c *PubSubComms) InitPubSub() error {
-	if c.TheCtx == nil || c.TheHost == nil {
+func (c *PubSubComms) initPubSub() error {
+	if c.theCtx == nil || c.theHost == nil {
 		return fmt.Errorf("Cannot init PubSub: not initialized")
 	}
 	var err error
-	c.pubSub, err = pubsub.NewGossipSub(c.TheCtx, c.TheHost)
+	c.pubSub, err = pubsub.NewGossipSub(c.theCtx, c.theHost)
 	if err != nil {
 		return err
 	}
-	c.Topic, err = c.pubSub.Join(c.ChanName)
+	c.topic, err = c.pubSub.Join(c.chanName)
 	if err != nil {
 		return err
 	}
@@ -64,35 +65,37 @@ func (c *PubSubComms) InitPubSub() error {
 }
 
 func (c *PubSubComms) Listen() error {
-	if c.Topic == nil {
+	if c.topic == nil {
 		return fmt.Errorf("Cannot listen: not initialized")
 	}
 	var err error
-	c.Sub, err = c.Topic.Subscribe()
+	c.sub, err = c.topic.Subscribe()
 	return err
 }
 
 func (c* PubSubComms) ParseMessages(){
 	for{
-		m, err := c.Sub.Next(c.TheCtx)
+		m, err := c.sub.Next(c.theCtx)
 		if err!= nil{
 			continue
 		}
 		cmd.ColorPrintln(fmt.Sprintf("%s: %s", m.ReceivedFrom, string(m.Message.Data)), cmd.Green)
-		return
+		if c.OnMessageParsed != nil{
+			c.OnMessageParsed(m)
+		}
 	}
 }
 
-func (c *PubSubComms) InitDHT() error {
-	if c.TheCtx == nil || c.TheHost == nil {
+func (c *PubSubComms) initDHT() error {
+	if c.theCtx == nil || c.theHost == nil {
 		return fmt.Errorf("Cannot init DHT: not initialized")
 	}
 	var err error
-	c.TheDht, err = dht.New(c.TheCtx, c.TheHost)
+	c.theDht, err = dht.New(c.theCtx, c.theHost)
 	if err != nil {
 		return err
 	}
-	err = c.TheDht.Bootstrap(c.TheCtx)
+	err = c.theDht.Bootstrap(c.theCtx)
 	if err != nil {
 		return err
 	}
@@ -103,7 +106,7 @@ func (c *PubSubComms) InitDHT() error {
 		go func() {
 			defer wg.Done()
 			var err error
-			err = c.TheHost.Connect(c.TheCtx, *peerInfo)
+			err = c.theHost.Connect(c.theCtx, *peerInfo)
 			if err != nil {
 
 			}
@@ -114,26 +117,26 @@ func (c *PubSubComms) InitDHT() error {
 }
 
 func (c *PubSubComms) Send(data []byte) error {
-	return c.Topic.Publish(c.TheCtx, data)
+	return c.topic.Publish(c.theCtx, data)
 }
 
 func (c *PubSubComms) DiscoverPeers() {
-	err := c.InitDHT()
+	err := c.initDHT()
 	cmd.ReportErrorAndExit(err)
-	routingDiscovery := drouting.NewRoutingDiscovery(c.TheDht)
-	dutil.Advertise(c.TheCtx, routingDiscovery, c.ChanName)
+	routingDiscovery := drouting.NewRoutingDiscovery(c.theDht)
+	dutil.Advertise(c.theCtx, routingDiscovery, c.chanName)
 	anyConnected := false
 	for !anyConnected {
 		cmd.ColorPrintln("Searching for peers...", cmd.Yellow)
-		peerChan, err := routingDiscovery.FindPeers(c.TheCtx, c.ChanName)
+		peerChan, err := routingDiscovery.FindPeers(c.theCtx, c.chanName)
 		if err != nil {
 			panic(err)
 		}
 		for peer := range peerChan {
-			if peer.ID == c.TheHost.ID() {
+			if peer.ID == c.theHost.ID() {
 				continue // No self connection
 			}
-			err := c.TheHost.Connect(c.TheCtx, peer)
+			err := c.theHost.Connect(c.theCtx, peer)
 			if err != nil {
 			} else {
 				cmd.ColorPrintln(fmt.Sprintf("Connected to %s", peer.ID), cmd.Green)
