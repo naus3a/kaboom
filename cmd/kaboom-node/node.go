@@ -9,6 +9,7 @@ import (
 	"github.com/naus3a/kaboom/cmd"
 	"github.com/naus3a/kaboom/sign"
 	"github.com/naus3a/kaboom/remote"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
 const usage = `Usage:
@@ -56,6 +57,9 @@ func main() {
 	comms, err := remote.NewPubSubComms("cippa", ctx)
 	cmd.ReportErrorAndExit(err)
 	cmd.ColorPrintln("Comms ready", cmd.Green)
+	
+	comms.OnMessageParsed = handleMessage
+
 	go comms.DiscoverPeers()
 
 	err = comms.Listen()
@@ -85,4 +89,8 @@ func loadShares(csv string) error{
 		}
 	}
 	return nil
+}
+
+func handleMessage(m *pubsub.Message){
+	
 }
