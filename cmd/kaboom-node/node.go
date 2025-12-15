@@ -1,12 +1,56 @@
 package main
 
 import (
+	"os"
+	"fmt"
+	"flag"
 	"context"
+	"github.com/naus3a/kaboom/fs"
 	"github.com/naus3a/kaboom/cmd"
+	"github.com/naus3a/kaboom/sign"
 	"github.com/naus3a/kaboom/remote"
 )
 
+const usage = `Usage:
+kaboom-node -s a.shab,b.shab
+
+Options:
+	-h, --help	this help screen
+	-v, --version	prints the version
+	-s, --shares	a list  of csv share paths
+`
+
+var shares []*sign.ArmoredShare
+
 func main() {
+	var hFlag bool
+	var vFlag bool
+	var sFlag string
+
+	cmd.InitCli(usage)
+	cmd.AddArg(&hFlag, false, "h", "help")
+	cmd.AddArg(&vFlag, false, "v", "version")
+	cmd.AddArg(&sFlag, "", "s", "shares")
+	flag.Parse()
+
+	if hFlag{
+		flag.Usage()
+		os.Exit(0)
+	}
+
+	if vFlag{
+		fmt.Println(cmd.Version)
+		os.Exit(0)
+	}
+
+	if sFlag==""{
+		fmt.Println("You need to specify at least a share file")
+		os.Exit(1)
+	}
+
+	err := loadShares(sFlag)
+	cmd.ReportErrorAndExit(err)
+
 	ctx := context.Background()
 
 	comms, err := remote.NewPubSubComms("cippa", ctx)
@@ -19,4 +63,26 @@ func main() {
 	cmd.ColorPrintln("Listening.", cmd.Green)
 	
 	comms.ParseMessages()
+}
+
+func loadShares(csv string) error{
+	pthShares, err := cmd.UnpackCsvArg(&csv)
+	if err!=nil{
+		return err
+	}
+	if len(pthShares)<1{
+		return fmt.Errorf("you need to specify at least a share file")
+	}
+	shares = make([]*sign.ArmoredShare, len(pthShares))
+	for i:=0; i<len(pthShares);i++{
+		jsonData, err := fs.LoadFile(pthShares[i])
+		if err!=nil{
+			return err
+		}
+		shares[i], err = sign.DeserializeShare(jsonData)
+		if err!=nil{
+			return err
+		}
+	}
+	return nil
 }
