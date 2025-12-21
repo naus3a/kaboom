@@ -93,7 +93,37 @@ func loadShares(csv string) error{
 }
 
 func handleMessage(m *pubsub.Message){
+	hb, err := sign.DecodeBinaryHeartBeat(m.Message.Data)
+	if err != nil{
+		return
+	}
 	for i:=0; i<len(shares); i++{
-		
+		good, err := sign.VerifyHeartBeat(shares[i], &hb)
+		if err == nil {
+			if good {
+				logHeartBeat(shares[i], &hb)
+			}else{
+				handleTamperedHeartBeat(shares[i])
+			}
+			return
+		}
 	} 
+}
+
+func logHeartBeat(s * sign.ArmoredShare, hb *sign.HeartBeat){
+	if !hb.AllGood{
+		startReleaseProtocol(s)
+		return
+	}
+	cmd.ColorPrintln(fmt.Sprintf("Good heartbeat from %s", s.AuthKey), cmd.Green)
+	//TODO
+}
+
+func handleTamperedHeartBeat(s * sign.ArmoredShare){
+	cmd.ColorPrintln(fmt.Sprintf("Tampered heartbeat for %s", s.AuthKey), cmd.Red)
+}
+
+func startReleaseProtocol(s *sign.ArmoredShare){
+	cmd.ColorPrintln(fmt.Sprintf("RELEASING PROTOCOL STARTED FOR %s", s.AuthKey), cmd.Red)
+	//TODO
 }
