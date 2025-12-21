@@ -6,6 +6,7 @@ import (
 	"crypto/ed25519"
 	"encoding/binary"
 	"encoding/base64"
+	"encoding/gob"
 )
 
 type HeartBeat struct{
@@ -15,7 +16,7 @@ type HeartBeat struct{
 }
 
 // GetData returns a byte buffer, ready to be signed
-func (h *HeartBeat) GetData()([]byte, error){
+func (h *HeartBeat) getData()([]byte, error){
 	buf := new(bytes.Buffer)
 	order := binary.BigEndian
 	err := binary.Write(buf, order, h.Epoch)
@@ -43,8 +44,23 @@ func NewHeartBeat(allGood bool, key *SigningKeys)(*HeartBeat, error){
 	return hb, nil
 }
 
+func (h *HeartBeat)Encode()([]byte, error){
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	err := enc.Encode(h)
+	return buf.Bytes(), err
+}
+
+func DecodeBinaryHeartBeat(data []byte)(HeartBeat, error){
+	var hb HeartBeat
+	reader := bytes.NewReader(data)
+	decoder := gob.NewDecoder(reader)
+	err := decoder.Decode(&hb)
+	return hb, err
+}
+
 func (h *HeartBeat)sign(k *SigningKeys)(error){
-	data, err := h.GetData()
+	data, err := h.getData()
 	if err != nil{
 		return err
 	}
@@ -53,7 +69,7 @@ func (h *HeartBeat)sign(k *SigningKeys)(error){
 }
 
 func VerifyHeartBeat(s *ArmoredShare, h *HeartBeat)(bool, error){
-	data, err := h.GetData()
+	data, err := h.getData()
 	if err != nil{
 		return false, err
 	}

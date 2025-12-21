@@ -70,7 +70,12 @@ func main() {
 	comms, err := remote.NewPubSubComms("cippa", ctx)
 	cmd.ReportErrorAndExit(err)
 	comms.OnPeerConnected = func() {
-		comms.Send([]byte(hb.Signature))
+		data, err := hb.Encode()
+		if err!= nil{
+			fmt.Errorf("cannot encode heartbeat: %s", err)
+			return
+		}
+		comms.Send([]byte(data))
 		cmd.ColorPrintln("Heartbeat delivered.", cmd.Green)
 	}
 	comms.OnMessageParsed = func(m *pubsub.Message ){

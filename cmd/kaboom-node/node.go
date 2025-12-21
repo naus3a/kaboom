@@ -46,6 +46,7 @@ func main() {
 
 	if sFlag==""{
 		fmt.Println("You need to specify at least a share file")
+		flag.Usage()
 		os.Exit(1)
 	}
 
@@ -92,5 +93,7 @@ func loadShares(csv string) error{
 }
 
 func handleMessage(m *pubsub.Message){
-	
+	for i:=0; i<len(shares); i++{
+		
+	} 
 }
