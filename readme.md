@@ -1,5 +1,5 @@
 # Kaboom
-**Kaboom** is a decentralized (https://en.wikipedia.org/wiki/Dead_man%27s_switch#Software)[dead man switch]:
+**Kaboom** is a decentralized [dead man switch](https://en.wikipedia.org/wiki/Dead_man%27s_switch#Software):
 * it encrypts your secrets
 * it splits the encrypted secrets  between a customizable number of sensor nodes
 * it allows you to send a regular heartbeat to the nodes
