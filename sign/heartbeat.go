@@ -44,6 +44,13 @@ func NewHeartBeat(allGood bool, key *SigningKeys)(*HeartBeat, error){
 	return hb, nil
 }
 
+func (h *HeartBeat)Equals(other *HeartBeat)bool{
+	if other==nil {
+		return false
+	}
+	return h.Epoch==other.Epoch && h.AllGood==other.AllGood && h.Signature==other.Signature
+}
+
 func (h *HeartBeat)Encode()([]byte, error){
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)

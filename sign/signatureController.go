@@ -103,21 +103,25 @@ func (k *SigningKeys) SignShares(shares [][]byte) []*ArmoredShare {
 	return signed
 }
 
-type serializedSigningKeys struct {
+type SerializedSigningKeys struct {
 	Public  string
 	Private string
 }
 
-func (k *SigningKeys) Serialize() ([]byte, error) {
-	serialized := &serializedSigningKeys{
-		Public:  base64.RawURLEncoding.EncodeToString(k.Public),
-		Private: base64.RawURLEncoding.EncodeToString(k.Private),
+func (k *SigningKeys) ToSerializedKeys()*SerializedSigningKeys{
+	return &SerializedSigningKeys{
+		Public: base64.RawURLEncoding.EncodeToString(k.Public),
+		Private: base64.RawURLEncoding.EncodeToString(k.Private), 
 	}
+}
+
+func (k *SigningKeys) Serialize() ([]byte, error) {
+	serialized := k.ToSerializedKeys()
 	return json.Marshal(serialized)
 }
 
 func DeserializeSigningKeys(jsonData []byte) (*SigningKeys, error) {
-	serialized := serializedSigningKeys{}
+	serialized := SerializedSigningKeys{}
 	err := json.Unmarshal(jsonData, &serialized)
 	if err != nil {
 		return nil, err
