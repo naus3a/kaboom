@@ -24,6 +24,7 @@ Options:
 	-t, --threshold		share threshold (default: 2)
 	-n, --notes				extra notes for your payload
 	-d, --delete			secure-delete plaintext
+	-m, --maxTtl		maximum time in hours since last heartbeat (default: 24)
 	-k, --signingkeys	the output file containing your signing keys (default: signingkeys.sigb)
 `
 
@@ -34,6 +35,7 @@ func main() {
 	var kFlag string
 	var gFlag string
 	var sFlag uint
+	var mFlag uint
 	var tFlag uint
 	var vFlag bool
 	var hFlag bool
@@ -50,6 +52,7 @@ func main() {
 	cmd.AddArg(&gFlag, "", "g", "gateway")
 	cmd.AddArg(&sFlag, 3, "s", "shares")
 	cmd.AddArg(&tFlag, 2, "t", "threshold")
+	cmd.AddArg(&mFlag, 24, "m", "maxTtl")
 
 	flag.Parse()
 
@@ -106,7 +109,7 @@ func main() {
 	signKeys, err := sign.NewSigningKeys()
 	cmd.ReportErrorAndExit(err)
 
-	signedShares := signKeys.SignShares(shares)
+	signedShares := signKeys.SignShares(shares, uint64( mFlag))
 	for i := 0; i < len(signedShares); i++ {
 		fName := fmt.Sprintf("%s%s", signedShares[i].ShortId, cmd.ExtShare)
 		jsonData, err := signedShares[i].Serialize()

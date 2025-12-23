@@ -18,7 +18,7 @@ func TestShareSigning(t *testing.T) {
 		t.Errorf("FAIL: cannot generate keys")
 	}
 
-	signed := key.SignShares(fakeShares)
+	signed := key.SignShares(fakeShares, 24)
 
 	//test the share making
 	for i := 0; i < len(signed); i++ {
@@ -40,7 +40,7 @@ func TestShareSigning(t *testing.T) {
 
 	wrongKey, _ := sign.NewSigningKeys()
 
-	wrongShares := wrongKey.SignShares(fakeShares)
+	wrongShares := wrongKey.SignShares(fakeShares, 24)
 	b, _ = signed[0].VerifyShare(wrongShares[0])
 	if b {
 		t.Errorf("FAIL: failed to identify different authentication key")
