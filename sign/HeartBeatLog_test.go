@@ -3,6 +3,7 @@ package sign_test
 import (
 	"testing"
 	"github.com/naus3a/kaboom/sign"
+	"time"
 )
 
 func TestLogHeartBeat(t *testing.T){
@@ -40,6 +41,23 @@ func TestLogHeartBeat(t *testing.T){
 	hbl.LogHeartBeat(id2.Public, hb2)
 	if hbl.GetNumIds()!=2{
 		t.Errorf("FAIL: didnt add a new identity")
+	}
+}
+
+func TestHeartBeatExpiration(t *testing.T){
+	key, _ := sign.NewSigningKeys()
+	hb, _ := sign.NewHeartBeat(true, key)
+
+	now := time.Now().Unix()
+	const aDay int64 = 24
+
+	if hb.IsExpired(aDay, now) {
+		t.Errorf("FAIL: heartbeat expires too soon")
+	}
+	
+	yesterday := now - (25*60*60)
+	if !hb.IsExpired(aDay, yesterday){
+		t.Errorf("FAIL: heartbeat did not expire")
 	}
 }
 

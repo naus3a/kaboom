@@ -51,6 +51,13 @@ func (h *HeartBeat)Equals(other *HeartBeat)bool{
 	return h.Epoch==other.Epoch && h.AllGood==other.AllGood && h.Signature==other.Signature
 }
 
+// IsExpired returns true if the heartbeat epoch older than the specified ttl (expressed in hours)
+func (h *HeartBeat) IsExpired(ttl int64, now int64) bool{
+	ttlSec := ttl * 60 * 60
+	expireTime := ttlSec + now
+	return h.Epoch > expireTime
+}
+
 func (h *HeartBeat)Encode()([]byte, error){
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
