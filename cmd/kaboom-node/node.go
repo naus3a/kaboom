@@ -19,9 +19,12 @@ Options:
 	-h, --help	this help screen
 	-v, --version	prints the version
 	-s, --shares	a list  of csv share paths
+	-l, --log	path to the log file (default: log.logb)
 `
 
 var shares []*sign.ArmoredShare
+var log *sign.HeartBeatLog
+var lFlag string
 
 func main() {
 	var hFlag bool
@@ -32,6 +35,7 @@ func main() {
 	cmd.AddArg(&hFlag, false, "h", "help")
 	cmd.AddArg(&vFlag, false, "v", "version")
 	cmd.AddArg(&sFlag, "", "s", "shares")
+	cmd.AddArg(&lFlag, "log.logb", "l", "log")
 	flag.Parse()
 
 	if hFlag{
@@ -51,6 +55,9 @@ func main() {
 	}
 
 	err := loadShares(sFlag)
+	cmd.ReportErrorAndExit(err)
+
+	err = loadLog(lFlag)
 	cmd.ReportErrorAndExit(err)
 
 	ctx := context.Background()
@@ -92,6 +99,28 @@ func loadShares(csv string) error{
 	return nil
 }
 
+func loadLog(pth string) error{
+	data, err := fs.LoadFile(pth)
+	if err != nil {
+		fmt.Printf("No log file at %s; creating one\n")
+		log = sign.NewHeartBeatLog()
+		return nil
+	}else{
+		log, err = sign.DeserializeHeartBeatLog(data)
+		return err
+	}
+
+
+}
+
+func saveLog(pth string) error{
+	data, err := log.Serialize()
+	if err!= nil{
+		return err
+	}
+	return fs.SaveFile(data, pth)
+}
+
 func handleMessage(m *pubsub.Message){
 	hb, err := sign.DecodeBinaryHeartBeat(m.Message.Data)
 	if err != nil{
@@ -116,7 +145,11 @@ func logHeartBeat(s * sign.ArmoredShare, hb *sign.HeartBeat){
 		return
 	}
 	cmd.ColorPrintln(fmt.Sprintf("Good heartbeat from %s", s.AuthKey), cmd.Green)
-	//TODO
+	log.LogHeartBeat(s.AuthKey, hb)
+	err := saveLog(lFlag)
+	if err != nil {
+		cmd.ColorPrintln("Cannot save log", cmd.Red)
+	}
 }
 
 func handleTamperedHeartBeat(s * sign.ArmoredShare){

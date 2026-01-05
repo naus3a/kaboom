@@ -1,5 +1,9 @@
 package sign
 
+import(
+	"encoding/json"
+)
+
 type HeartBeatLog struct{
 	lastHeartBeats map[string]HeartBeat
 }
@@ -33,4 +37,25 @@ func (l *HeartBeatLog) GetLastHeartBeat(id string)(HeartBeat, bool){
 // GetNumIds returns the number of identities recorded
 func (l *HeartBeatLog) GetNumIds()int{
 	return len(l.lastHeartBeats)
+}
+
+func (l *HeartBeatLog) Serialize()([]byte, error){
+	return json.Marshal(struct{
+		LastHeartBeats map[string]HeartBeat `json:"lastHeartBeats"`
+	}{
+		LastHeartBeats: l.lastHeartBeats,
+	})
+}
+
+func DeserializeHeartBeatLog(data []byte)(*HeartBeatLog, error){
+	proxy := struct {
+		LastHeartBeats map[string]HeartBeat `json:"lastHeartBeats"`
+	}{}
+	err := json.Unmarshal(data, &proxy)
+	if err != nil{
+		return nil, err
+	}
+	return &HeartBeatLog{
+		lastHeartBeats: proxy.LastHeartBeats,
+	}, nil
 }
