@@ -102,7 +102,7 @@ func loadShares(csv string) error{
 func loadLog(pth string) error{
 	data, err := fs.LoadFile(pth)
 	if err != nil {
-		fmt.Printf("No log file at %s; creating one\n")
+		fmt.Printf("No log file at %s; creating one\n", pth)
 		log = sign.NewHeartBeatLog()
 		return nil
 	}else{

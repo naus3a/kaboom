@@ -61,6 +61,30 @@ func TestHeartBeatExpiration(t *testing.T){
 	}
 }
 
+func TestHeartBeatExpirationWithShare(t *testing.T){
+	key, _ := sign.NewSigningKeys()
+	key2, _ := sign.NewSigningKeys()
+	id := key.ToSerializedKeys()
+	fakeShare := []byte("111111111")
+	fakeShare2 := []byte("222222222")
+	s := sign.NewArmoredShare(fakeShare, 24, key)
+	s2:= sign.NewArmoredShare(fakeShare2, 24, key2)
+	hb, _ := sign.NewHeartBeat(true, key)
+	hbl := sign.NewHeartBeatLog()
+	hbl.LogHeartBeat(id.Public, hb)
+	now := time.Now().Unix()
+	yesterday := now -(25*60*60)
+	if hbl.IsExpired(s, now) {
+		t.Errorf("FAIL: good share shows up expired")
+	}
+	if !hbl.IsExpired(s, yesterday){
+		t.Errorf("FAIL: share did not expire on an old heartbeat")
+	}
+	if hbl.IsExpired(s2, yesterday){
+		t.Errorf("FAIL: found share which wasnt logged")
+	}
+}
+
 func forgeTestHeartBeat(epoch int64)(*sign.HeartBeat){
 	return &sign.HeartBeat{
 		Epoch: epoch,

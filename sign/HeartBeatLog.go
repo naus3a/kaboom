@@ -39,6 +39,17 @@ func (l *HeartBeatLog) GetNumIds()int{
 	return len(l.lastHeartBeats)
 }
 
+func (l *HeartBeatLog) IsExpired(s *ArmoredShare, now int64) bool{
+	if s== nil {
+		return false
+	}
+	hb, hasIt := l.GetLastHeartBeat(s.AuthKey)
+	if !hasIt{
+		return false
+	}
+	return hb.IsExpired(int64(s.TTL), now)
+}
+
 func (l *HeartBeatLog) Serialize()([]byte, error){
 	return json.Marshal(struct{
 		LastHeartBeats map[string]HeartBeat `json:"lastHeartBeats"`
