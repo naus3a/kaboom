@@ -4,6 +4,7 @@ import (
 	"os"
 	"fmt"
 	"flag"
+	"time"
 	"context"
 	"github.com/naus3a/kaboom/fs"
 	"github.com/naus3a/kaboom/cmd"
@@ -59,6 +60,8 @@ func main() {
 
 	err = loadLog(lFlag)
 	cmd.ReportErrorAndExit(err)
+
+	checkExpiredHeartBeats()
 
 	ctx := context.Background()
 
@@ -119,6 +122,15 @@ func saveLog(pth string) error{
 		return err
 	}
 	return fs.SaveFile(data, pth)
+}
+
+func checkExpiredHeartBeats(){
+	now := time.Now().Unix()
+	for _,s := range shares{
+		if log.IsExpired(s, now){
+			startReleaseProtocol(s)
+		}	
+	}
 }
 
 func handleMessage(m *pubsub.Message){
