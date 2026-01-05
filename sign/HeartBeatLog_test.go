@@ -31,7 +31,7 @@ func TestLogHeartBeat(t *testing.T){
 	hbl.LogHeartBeat(id.Public, olderHb)
 	h, found = hbl.GetLastHeartBeat(id.Public)
 	if !h.Equals(newerHb){
-		t.Errorf("FAIL: didnt handle correctly an ourdated hearrbeat")
+		t.Errorf("FAIL: didnt handle correctly an outdated hearrbeat")
 	}
 
 	key2, _ := sign.NewSigningKeys()

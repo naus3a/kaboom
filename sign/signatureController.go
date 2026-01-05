@@ -48,11 +48,6 @@ func (s *ArmoredShare) VerifyShare(other *ArmoredShare) (bool, error) {
 	if other.AuthKey != s.AuthKey {
 		return false, nil
 	}
-	//kData, err := base64.RawURLEncoding.DecodeString(s.AuthKey)
-	//if err != nil {
-	//	return false, err
-	//}
-	//k := ed25519.PublicKey(kData)
 	sig, err := base64.RawURLEncoding.DecodeString(other.Signature)
 	if err != nil {
 		return false, nil
@@ -61,9 +56,17 @@ func (s *ArmoredShare) VerifyShare(other *ArmoredShare) (bool, error) {
 	if err != nil {
 		return false, nil
 	}
-	//isGood := ed25519.Verify(k, data, sig)
-	//return isGood, nil
 	return s.verify(data, sig)
+}
+
+func (s *ArmoredShare) VerifyTtl()(bool, error){
+	bufTtl := make([]byte, 8)
+	binary.BigEndian.PutUint64(bufTtl, s.TTL)
+	sig, err := base64.RawURLEncoding.DecodeString(s.TtlSignature)
+	if err != nil{
+		return false, err
+	}
+	return s.verify(bufTtl, sig)
 }
 
 // Serialize returns a json version of the signed share
