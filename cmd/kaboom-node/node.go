@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"flag"
 	"time"
+	"sync"
 	"context"
 	"github.com/naus3a/kaboom/fs"
 	"github.com/naus3a/kaboom/cmd"
@@ -22,7 +23,7 @@ Options:
 	-s, --shares	a list  of csv share paths
 	-l, --log	path to the log file (default: log.logb)
 `
-
+var muShares sync.RWMutex
 var shares []*sign.ArmoredShare
 var log *sign.HeartBeatLog
 var lFlag string
@@ -98,6 +99,8 @@ func loadShares(csv string) error{
 	if len(pthShares)<1{
 		return fmt.Errorf("you need to specify at least a share file")
 	}
+	muShares.Lock()
+	defer muShares.Unlock()
 	shares = make([]*sign.ArmoredShare, len(pthShares))
 	for i:=0; i<len(pthShares);i++{
 		jsonData, err := fs.LoadFile(pthShares[i])
@@ -136,15 +139,17 @@ func saveLog(pth string) error{
 
 func checkExpiredHeartBeats(){
 	now := time.Now().Unix()
+	muShares.RLock()
 	for _,s := range shares{
 		if log.IsExpired(s, now){
 			startReleaseProtocol(s)
 		}	
 	}
+	muShares.RUnlock()
 }
 
 func startTimedExpiredHeartBeatsCheck(){
-	const interval = 3600
+	const interval = 2
 	ticker := time.NewTicker(interval *time.Second)
 	defer ticker.Stop()
 	for {
@@ -160,6 +165,8 @@ func handleMessage(m *pubsub.Message){
 	if err != nil{
 		return
 	}
+	muShares.RLock()
+	defer muShares.RUnlock()
 	for i:=0; i<len(shares); i++{
 		good, err := sign.VerifyHeartBeat(shares[i], &hb)
 		if err == nil {
@@ -170,7 +177,8 @@ func handleMessage(m *pubsub.Message){
 			}
 			return
 		}
-	} 
+	}
+	//muShares.RUnlock()
 }
 
 func logHeartBeat(s * sign.ArmoredShare, hb *sign.HeartBeat){

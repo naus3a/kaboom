@@ -36,7 +36,7 @@ func (l *HeartBeatLog) LogHeartBeat(id string, hb *HeartBeat){
 func (l *HeartBeatLog) GetLastHeartBeat(id string)(HeartBeat, bool){
 	l.mutex.RLock()
 	defer l.mutex.RUnlock()
-	hb, b := l.lastHeartBeats[id], true
+	hb, b := l.lastHeartBeats[id]
 	return hb, b
 }
 
