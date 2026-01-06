@@ -1,10 +1,12 @@
 package sign
 
 import(
+	"sync"
 	"encoding/json"
 )
 
 type HeartBeatLog struct{
+	mutex sync.RWMutex
 	lastHeartBeats map[string]HeartBeat
 }
 
@@ -19,6 +21,7 @@ func NewHeartBeatLog() *HeartBeatLog{
 // It is assumed that you already verified this heartbeat before passing it in.
 func (l *HeartBeatLog) LogHeartBeat(id string, hb *HeartBeat){
 	old, hasIt := l.GetLastHeartBeat(id)
+	l.mutex.Lock()
 	if hasIt{
 		if hb.Epoch > old.Epoch{
 			l.lastHeartBeats[id] = *hb
@@ -26,16 +29,21 @@ func (l *HeartBeatLog) LogHeartBeat(id string, hb *HeartBeat){
 	}else{
 		l.lastHeartBeats[id] = *hb
 	}
+	l.mutex.Unlock()
 }
 
 // GetLastHeartBeat gets you the latest heartbeat for an identity; the bool is false if thr id ia not found
 func (l *HeartBeatLog) GetLastHeartBeat(id string)(HeartBeat, bool){
-	hb, f := l.lastHeartBeats[id]
-	return hb, f
+	l.mutex.RLock()
+	defer l.mutex.RUnlock()
+	hb, b := l.lastHeartBeats[id], true
+	return hb, b
 }
 
 // GetNumIds returns the number of identities recorded
 func (l *HeartBeatLog) GetNumIds()int{
+	l.mutex.RLock()
+	defer l.mutex.RUnlock()
 	return len(l.lastHeartBeats)
 }
 
@@ -51,6 +59,8 @@ func (l *HeartBeatLog) IsExpired(s *ArmoredShare, now int64) bool{
 }
 
 func (l *HeartBeatLog) Serialize()([]byte, error){
+	l.mutex.RLock()
+	defer l.mutex.RUnlock()
 	return json.Marshal(struct{
 		LastHeartBeats map[string]HeartBeat `json:"lastHeartBeats"`
 	}{
