@@ -49,7 +49,7 @@ func main() {
 	allGood := !rFlag
 
 	if sFlag==""{
-		fmt.Println("You need to specify signing keys\n")
+		fmt.Println("You need to specify signing keys")
 		flag.Usage()
 		os.Exit(1)
 	}

@@ -14,7 +14,7 @@ func TestHeartBeat(t *testing.T){
 	}
 
 	fakeShare := []byte("123456")
-	share := sign.NewArmoredShare(fakeShare, key)
+	share := sign.NewArmoredShare(fakeShare, 24, key)
 
 	b, err := sign.VerifyHeartBeat(share, hb)
 	if err != nil {
