@@ -28,6 +28,9 @@ var log *sign.HeartBeatLog
 var lFlag string
 
 func main() {
+	//
+	// arg parsing
+	//
 	var hFlag bool
 	var vFlag bool
 	var sFlag string
@@ -54,7 +57,10 @@ func main() {
 		flag.Usage()
 		os.Exit(1)
 	}
-
+	
+	//
+	// file loading
+	//
 	err := loadShares(sFlag)
 	cmd.ReportErrorAndExit(err)
 
@@ -62,7 +68,11 @@ func main() {
 	cmd.ReportErrorAndExit(err)
 
 	checkExpiredHeartBeats()
+	go startTimedExpiredHeartBeatsCheck()
 
+	//
+	// heartbeat listening
+	//
 	ctx := context.Background()
 
 	comms, err := remote.NewPubSubComms("cippa", ctx)
@@ -130,6 +140,18 @@ func checkExpiredHeartBeats(){
 		if log.IsExpired(s, now){
 			startReleaseProtocol(s)
 		}	
+	}
+}
+
+func startTimedExpiredHeartBeatsCheck(){
+	const interval = 3600
+	ticker := time.NewTicker(interval *time.Second)
+	defer ticker.Stop()
+	for {
+		select{
+			case <- ticker.C:
+				checkExpiredHeartBeats()	
+		}
 	}
 }
 
