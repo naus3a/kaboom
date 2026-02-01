@@ -5,6 +5,7 @@ import (
 	"flag"
 	"context"
 	"os"
+	"encoding/base64"
 	"github.com/naus3a/kaboom/fs"
 	"github.com/naus3a/kaboom/cmd"
 	"github.com/naus3a/kaboom/sign"
@@ -66,8 +67,10 @@ func main() {
 	cmd.ReportErrorAndExit(err)	
 
 	ctx := context.Background()
-
-	comms, err := remote.NewPubSubComms("cippa", ctx)
+	
+	chanName := remote.MakeChannelNameNow(base64.RawURLEncoding.EncodeToString(signKeys.Public))
+	cmd.ColorPrintln(fmt.Sprintf("Channel name: %s", chanName), cmd.Green)
+	comms, err := remote.NewPubSubComms(chanName, ctx)
 	cmd.ReportErrorAndExit(err)
 	comms.OnPeerConnected = func() {
 		data, err := hb.Encode()

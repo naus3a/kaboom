@@ -77,10 +77,11 @@ func main() {
 	ctx := context.Background()
 
 	//TODO: support multiple shares
-	chanName := ""
+	chanName := "cippa"
 	if len(shares)>0{
 		chanName = remote.MakeChannelNameNow(shares[0].AuthKey)
 	}
+	cmd.ColorPrintln(fmt.Sprintf("Channel name: %s", chanName), cmd.Green)
 	comms, err := remote.NewPubSubComms(chanName, ctx)
 	cmd.ReportErrorAndExit(err)
 	cmd.ColorPrintln("Comms ready", cmd.Green)
