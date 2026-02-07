@@ -67,7 +67,7 @@ func main() {
 	cmd.ReportErrorAndExit(err)	
 
 	ctx := context.Background()
-	
+
 	chanName := remote.MakeChannelNameNow(base64.RawURLEncoding.EncodeToString(signKeys.Public))
 	cmd.ColorPrintln(fmt.Sprintf("Channel name: %s", chanName), cmd.Green)
 	comms, err := remote.NewPubSubComms(chanName, ctx)

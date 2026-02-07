@@ -26,6 +26,7 @@ Options:
 var muShares sync.RWMutex
 var shares []*sign.ArmoredShare
 var log *sign.HeartBeatLog
+var ctx context.Context
 var lFlag string
 
 func main() {
@@ -74,27 +75,33 @@ func main() {
 	//
 	// heartbeat listening
 	//
-	ctx := context.Background()
+	ctx = context.Background()
 
 	//TODO: support multiple shares
-	chanName := "cippa"
-	if len(shares)>0{
-		chanName = remote.MakeChannelNameNow(shares[0].AuthKey)
-	}
+	
+	StartCommsOnChannel(remote.MakeChannelNameNow(shares[0].AuthKey))
+}
+
+func StartCommsOnChannel(chanName string){
+	StopComms()
+
 	cmd.ColorPrintln(fmt.Sprintf("Channel name: %s", chanName), cmd.Green)
+
 	comms, err := remote.NewPubSubComms(chanName, ctx)
 	cmd.ReportErrorAndExit(err)
 	cmd.ColorPrintln("Comms ready", cmd.Green)
-	
-	comms.OnMessageParsed = handleMessage
 
+	comms.OnMessageParsed = handleMessage
 	go comms.DiscoverPeers()
 
 	err = comms.Listen()
 	cmd.ReportErrorAndExit(err)
 	cmd.ColorPrintln("Listening.", cmd.Green)
-	
 	comms.ParseMessages()
+}
+
+func StopComms(){
+
 }
 
 func loadShares(csv string) error{
