@@ -17,6 +17,7 @@ import (
 type PubSubComms struct {
 	chanName          string
 	theCtx            context.Context
+	cancel		  context.CancelFunc
 	theHost           host.Host
 	pubSub            *pubsub.PubSub
 	topic             *pubsub.Topic
@@ -29,11 +30,11 @@ type PubSubComms struct {
 	OnMessageParsed func(*pubsub.Message)
 }
 
-func NewPubSubComms(channelName string, ctx context.Context) (*PubSubComms, error) {
+func NewPubSubComms(channelName string) (*PubSubComms, error) {
 	c := new(PubSubComms)
+	c.theCtx, c.cancel = context.WithCancel(context.Background())
 	var err error
 	c.chanName = channelName
-	c.theCtx = ctx
 	c.theHost, err = libp2p.New(libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/0"))
 
 	if err != nil {
@@ -46,6 +47,10 @@ func NewPubSubComms(channelName string, ctx context.Context) (*PubSubComms, erro
 	}
 
 	return c, nil
+}
+
+func (c* PubSubComms) Stop(){
+	c.cancel()
 }
 
 func (c *PubSubComms) GetMyId()(peer.ID	, error){

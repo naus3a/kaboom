@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"flag"
-	"context"
 	"os"
 	"encoding/base64"
 	"github.com/naus3a/kaboom/fs"
@@ -66,11 +65,9 @@ func main() {
 	hb, err := sign.NewHeartBeat(allGood, signKeys)
 	cmd.ReportErrorAndExit(err)	
 
-	ctx := context.Background()
-
 	chanName := remote.MakeChannelNameNow(base64.RawURLEncoding.EncodeToString(signKeys.Public))
 	cmd.ColorPrintln(fmt.Sprintf("Channel name: %s", chanName), cmd.Green)
-	comms, err := remote.NewPubSubComms(chanName, ctx)
+	comms, err := remote.NewPubSubComms(chanName)
 	cmd.ReportErrorAndExit(err)
 	comms.OnPeerConnected = func() {
 		data, err := hb.Encode()

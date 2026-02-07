@@ -6,7 +6,6 @@ import (
 	"flag"
 	"time"
 	"sync"
-	"context"
 	"github.com/naus3a/kaboom/fs"
 	"github.com/naus3a/kaboom/cmd"
 	"github.com/naus3a/kaboom/sign"
@@ -26,7 +25,7 @@ Options:
 var muShares sync.RWMutex
 var shares []*sign.ArmoredShare
 var log *sign.HeartBeatLog
-var ctx context.Context
+var comms * remote.PubSubComms
 var lFlag string
 
 func main() {
@@ -75,7 +74,7 @@ func main() {
 	//
 	// heartbeat listening
 	//
-	ctx = context.Background()
+	comms = nil
 
 	//TODO: support multiple shares
 	
@@ -84,10 +83,11 @@ func main() {
 
 func StartCommsOnChannel(chanName string){
 	StopComms()
-
+	
+	var err error = nil
 	cmd.ColorPrintln(fmt.Sprintf("Channel name: %s", chanName), cmd.Green)
 
-	comms, err := remote.NewPubSubComms(chanName, ctx)
+	comms, err = remote.NewPubSubComms(chanName)
 	cmd.ReportErrorAndExit(err)
 	cmd.ColorPrintln("Comms ready", cmd.Green)
 
@@ -101,6 +101,9 @@ func StartCommsOnChannel(chanName string){
 }
 
 func StopComms(){
+	if comms==nil{
+		return
+	}
 
 }
 
