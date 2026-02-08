@@ -22,6 +22,10 @@ Options:
 	-s, --shares	a list  of csv share paths
 	-l, --log	path to the log file (default: log.logb)
 `
+
+const intervalExpiredHb = 2*time.Hour
+const intervalRotChan = 5*time.Second
+
 var muShares sync.RWMutex
 var shares []*sign.ArmoredShare
 var log *sign.HeartBeatLog
@@ -69,8 +73,8 @@ func main() {
 	cmd.ReportErrorAndExit(err)
 
 	checkExpiredHeartBeats()
-	go startTimedExpiredHeartBeatsCheck()
-	go startTimedChanNameRotation()
+	//go startTimedExpiredHeartBeatsCheck()
+	//go startTimedChanNameRotation()
 
 	//
 	// heartbeat listening
@@ -80,6 +84,19 @@ func main() {
 	//TODO: support multiple shares
 	
 	StartCommsOnChannel(remote.MakeChannelNameNow(shares[0].AuthKey))
+	
+	tExpiredHb := time.NewTicker(intervalExpiredHb)
+	tRotChan := time.NewTicker(intervalRotChan)
+
+	for{
+		select{
+			case <-tExpiredHb.C:
+				checkExpiredHeartBeats()
+			case <-tRotChan.C:
+				fmt.Println("cippa")
+
+		}
+	}
 }
 
 ///
@@ -103,7 +120,7 @@ func StartCommsOnChannel(chanName string){
 	err = comms.Listen()
 	cmd.ReportErrorAndExit(err)
 	cmd.ColorPrintln("Listening.", cmd.Green)
-	comms.ParseMessages()
+	go comms.ParseMessages()
 }
 
 func stopComms() error{
@@ -178,6 +195,8 @@ func updateChanNameIfNeeded(){
 	err := stopComms()
 	cmd.ReportErrorAndExit(err)
 	StartCommsOnChannel(remote.MakeChannelNameNow(shares[0].AuthKey))
+
+	//TODO it exits as soon the parse messages loop rerurns. this prevents the restart to go thru
 }
 
 ///

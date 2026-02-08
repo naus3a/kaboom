@@ -95,7 +95,13 @@ func (c *PubSubComms) Listen() error {
 }
 
 func (c* PubSubComms) ParseMessages(){
+	c.wg.Add(1)
+	defer c.wg.Done()
 	for{
+		if c.theCtx.Err()!=nil{
+			fmt.Println("Message parsing stopped")
+			return
+		}
 		m, err := c.sub.Next(c.theCtx)
 		if err!= nil{
 			continue
