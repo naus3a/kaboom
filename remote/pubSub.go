@@ -3,6 +3,7 @@ package remote
 import (
 	"context"
 	"fmt"
+	"sync"
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -11,13 +12,13 @@ import (
 	drouting "github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	dutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
 	"github.com/naus3a/kaboom/cmd"
-	"sync"
 )
 
 type PubSubComms struct {
 	chanName          string
 	theCtx            context.Context
 	cancel		  context.CancelFunc
+	wg		  sync.WaitGroup
 	theHost           host.Host
 	pubSub            *pubsub.PubSub
 	topic             *pubsub.Topic
@@ -50,15 +51,14 @@ func NewPubSubComms(channelName string) (*PubSubComms, error) {
 }
 
 func (c* PubSubComms) Stop() error{
-	//err := c.topic.Close()
-	//if err!=nil{
-	//	return err
-	//}
-	//err = c.theHost.Close()
-	//if err!=nil{
-	//	return err
-	//}
 	c.cancel()
+	c.wg.Wait()
+
+	err := c.theHost.Close()
+	if err!=nil{
+		return err
+	}
+	fmt.Println("Comms Closed.")	
 	return nil
 }
 
@@ -142,6 +142,9 @@ func (c *PubSubComms) Send(data []byte) error {
 }
 
 func (c *PubSubComms) DiscoverPeers() {	
+	c.wg.Add(1)
+	defer c.wg.Done()
+
 	err := c.initDHT()
 	cmd.ReportErrorAndExit(err)
 	routingDiscovery := drouting.NewRoutingDiscovery(c.theDht)

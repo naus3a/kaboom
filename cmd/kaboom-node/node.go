@@ -82,9 +82,14 @@ func main() {
 	StartCommsOnChannel(remote.MakeChannelNameNow(shares[0].AuthKey))
 }
 
+///
+/// comms
+///
+
 func StartCommsOnChannel(chanName string){
-	StopComms()
-	
+	if comms != nil {
+		return
+	}
 	var err error = nil
 	cmd.ColorPrintln(fmt.Sprintf("Channel name: %s", chanName), cmd.Green)
 
@@ -101,12 +106,83 @@ func StartCommsOnChannel(chanName string){
 	comms.ParseMessages()
 }
 
-func StopComms(){
+func stopComms() error{
 	if comms==nil{
+		return nil
+	}
+	err := comms.Stop()
+	if err != nil {
+		return err
+	}
+	comms = nil
+	return nil
+}
+
+func handleMessage(m *pubsub.Message){
+	hb, err := sign.DecodeBinaryHeartBeat(m.Message.Data)
+	if err != nil{
 		return
 	}
-	comms.Stop()
+	muShares.RLock()
+	defer muShares.RUnlock()
+	for i:=0; i<len(shares); i++{
+		good, err := sign.VerifyHeartBeat(shares[i], &hb)
+		if err == nil {
+			if good {
+				logHeartBeat(shares[i], &hb)
+			}else{
+				handleTamperedHeartBeat(shares[i])
+			}
+			return
+		}
+	}
+	//muShares.RUnlock()
 }
+
+func logHeartBeat(s * sign.ArmoredShare, hb *sign.HeartBeat){
+	if !hb.AllGood{
+		startReleaseProtocol(s)
+		return
+	}
+	cmd.ColorPrintln(fmt.Sprintf("Good heartbeat from %s", s.AuthKey), cmd.Green)
+	log.LogHeartBeat(s.AuthKey, hb)
+	err := saveLog(lFlag)
+	if err != nil {
+		cmd.ColorPrintln("Cannot save log", cmd.Red)
+	}
+}
+
+func handleTamperedHeartBeat(s * sign.ArmoredShare){
+	cmd.ColorPrintln(fmt.Sprintf("Tampered heartbeat for %s", s.AuthKey), cmd.Red)
+}
+
+///
+/// channel name rotation
+///
+
+func startTimedChanNameRotation(){
+	const interval = 5
+	ticker := time.NewTicker(interval*time.Second)
+	defer ticker.Stop()
+	for{
+		select{
+			case <- ticker.C:
+				updateChanNameIfNeeded()
+		}
+	}
+
+}
+
+func updateChanNameIfNeeded(){
+	cmd.ColorPrintln("cippa", cmd.Red)
+	err := stopComms()
+	cmd.ReportErrorAndExit(err)
+	StartCommsOnChannel(remote.MakeChannelNameNow(shares[0].AuthKey))
+}
+
+///
+/// fs
+///
 
 func loadShares(csv string) error{
 	pthShares, err := cmd.UnpackCsvArg(&csv)
@@ -154,6 +230,10 @@ func saveLog(pth string) error{
 	return fs.SaveFile(data, pth)
 }
 
+//
+// check expired heartbeats
+//
+
 func checkExpiredHeartBeats(){
 	now := time.Now().Unix()
 	muShares.RLock()
@@ -177,64 +257,11 @@ func startTimedExpiredHeartBeatsCheck(){
 	}
 }
 
-func startTimedChanNameRotation(){
-	const interval = 5
-	ticker := time.NewTicker(interval*time.Second)
-	defer ticker.Stop()
-	for{
-		select{
-			case <- ticker.C:
-				updateChanNameIfNeeded()
-		}
-	}
-
-}
-
-func handleMessage(m *pubsub.Message){
-	hb, err := sign.DecodeBinaryHeartBeat(m.Message.Data)
-	if err != nil{
-		return
-	}
-	muShares.RLock()
-	defer muShares.RUnlock()
-	for i:=0; i<len(shares); i++{
-		good, err := sign.VerifyHeartBeat(shares[i], &hb)
-		if err == nil {
-			if good {
-				logHeartBeat(shares[i], &hb)
-			}else{
-				handleTamperedHeartBeat(shares[i])
-			}
-			return
-		}
-	}
-	//muShares.RUnlock()
-}
-
-func logHeartBeat(s * sign.ArmoredShare, hb *sign.HeartBeat){
-	if !hb.AllGood{
-		startReleaseProtocol(s)
-		return
-	}
-	cmd.ColorPrintln(fmt.Sprintf("Good heartbeat from %s", s.AuthKey), cmd.Green)
-	log.LogHeartBeat(s.AuthKey, hb)
-	err := saveLog(lFlag)
-	if err != nil {
-		cmd.ColorPrintln("Cannot save log", cmd.Red)
-	}
-}
-
-func handleTamperedHeartBeat(s * sign.ArmoredShare){
-	cmd.ColorPrintln(fmt.Sprintf("Tampered heartbeat for %s", s.AuthKey), cmd.Red)
-}
+// release
 
 func startReleaseProtocol(s *sign.ArmoredShare){
 	cmd.ColorPrintln(fmt.Sprintf("RELEASING PROTOCOL STARTED FOR %s", s.AuthKey), cmd.Red)
 	//TODO
 }
 
-func updateChanNameIfNeeded(){
-	cmd.ColorPrintln("cippa", cmd.Red)
-	err := comms.Stop()
-	cmd.ReportErrorAndExit(err)
-}
+
