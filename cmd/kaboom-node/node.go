@@ -70,6 +70,7 @@ func main() {
 
 	checkExpiredHeartBeats()
 	go startTimedExpiredHeartBeatsCheck()
+	go startTimedChanNameRotation()
 
 	//
 	// heartbeat listening
@@ -104,7 +105,7 @@ func StopComms(){
 	if comms==nil{
 		return
 	}
-
+	comms.Stop()
 }
 
 func loadShares(csv string) error{
@@ -166,7 +167,7 @@ func checkExpiredHeartBeats(){
 
 func startTimedExpiredHeartBeatsCheck(){
 	const interval = 2
-	ticker := time.NewTicker(interval *time.Second)
+	ticker := time.NewTicker(interval *time.Hour)
 	defer ticker.Stop()
 	for {
 		select{
@@ -174,6 +175,19 @@ func startTimedExpiredHeartBeatsCheck(){
 				checkExpiredHeartBeats()	
 		}
 	}
+}
+
+func startTimedChanNameRotation(){
+	const interval = 5
+	ticker := time.NewTicker(interval*time.Second)
+	defer ticker.Stop()
+	for{
+		select{
+			case <- ticker.C:
+				updateChanNameIfNeeded()
+		}
+	}
+
 }
 
 func handleMessage(m *pubsub.Message){
@@ -217,4 +231,10 @@ func handleTamperedHeartBeat(s * sign.ArmoredShare){
 func startReleaseProtocol(s *sign.ArmoredShare){
 	cmd.ColorPrintln(fmt.Sprintf("RELEASING PROTOCOL STARTED FOR %s", s.AuthKey), cmd.Red)
 	//TODO
+}
+
+func updateChanNameIfNeeded(){
+	cmd.ColorPrintln("cippa", cmd.Red)
+	err := comms.Stop()
+	cmd.ReportErrorAndExit(err)
 }

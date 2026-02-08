@@ -49,8 +49,17 @@ func NewPubSubComms(channelName string) (*PubSubComms, error) {
 	return c, nil
 }
 
-func (c* PubSubComms) Stop(){
+func (c* PubSubComms) Stop() error{
+	//err := c.topic.Close()
+	//if err!=nil{
+	//	return err
+	//}
+	//err = c.theHost.Close()
+	//if err!=nil{
+	//	return err
+	//}
 	c.cancel()
+	return nil
 }
 
 func (c *PubSubComms) GetMyId()(peer.ID	, error){
@@ -132,19 +141,27 @@ func (c *PubSubComms) Send(data []byte) error {
 	return c.topic.Publish(c.theCtx, data)
 }
 
-func (c *PubSubComms) DiscoverPeers() {
+func (c *PubSubComms) DiscoverPeers() {	
 	err := c.initDHT()
 	cmd.ReportErrorAndExit(err)
 	routingDiscovery := drouting.NewRoutingDiscovery(c.theDht)
 	dutil.Advertise(c.theCtx, routingDiscovery, c.chanName)
 	anyConnected := false
 	for !anyConnected {
+		if c.theCtx.Err()!=nil{
+			fmt.Println("Discovery stopped.")
+			return
+		}
 		cmd.ColorPrintln("Searching for peers...", cmd.Yellow)
 		peerChan, err := routingDiscovery.FindPeers(c.theCtx, c.chanName)
 		if err != nil {
 			panic(err)
 		}
 		for peer := range peerChan {
+			if c.theCtx.Err()!=nil{
+			fmt.Println("Discovery stopped.")
+			return
+		}
 			if peer.ID == c.theHost.ID() {
 				continue // No self connection
 			}
