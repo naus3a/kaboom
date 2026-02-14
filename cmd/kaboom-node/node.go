@@ -23,8 +23,8 @@ Options:
 	-l, --log	path to the log file (default: log.logb)
 `
 
-const intervalExpiredHb = 2*time.Hour
-const intervalRotChan = 5*time.Second
+const intervalExpiredHb = 1*time.Hour
+const intervalRotChan = 5*time.Minute
 
 var muShares sync.RWMutex
 var shares []*sign.ArmoredShare
@@ -73,8 +73,6 @@ func main() {
 	cmd.ReportErrorAndExit(err)
 
 	checkExpiredHeartBeats()
-	//go startTimedExpiredHeartBeatsCheck()
-	//go startTimedChanNameRotation()
 
 	//
 	// heartbeat listening
@@ -93,7 +91,7 @@ func main() {
 			case <-tExpiredHb.C:
 				checkExpiredHeartBeats()
 			case <-tRotChan.C:
-				fmt.Println("cippa")
+				updateChanNameIfNeeded()
 
 		}
 	}
@@ -175,28 +173,18 @@ func handleTamperedHeartBeat(s * sign.ArmoredShare){
 
 ///
 /// channel name rotation
-///
-
-func startTimedChanNameRotation(){
-	const interval = 5
-	ticker := time.NewTicker(interval*time.Second)
-	defer ticker.Stop()
-	for{
-		select{
-			case <- ticker.C:
-				updateChanNameIfNeeded()
-		}
-	}
-
-}
+//
 
 func updateChanNameIfNeeded(){
-	cmd.ColorPrintln("cippa", cmd.Red)
+	chanName := remote.MakeChannelNameNow(shares[0].AuthKey)
+	if chanName == comms.GetChannelName(){
+		return
+	}
+
+	fmt.Println("Rotating channel")
 	err := stopComms()
 	cmd.ReportErrorAndExit(err)
 	StartCommsOnChannel(remote.MakeChannelNameNow(shares[0].AuthKey))
-
-	//TODO it exits as soon the parse messages loop rerurns. this prevents the restart to go thru
 }
 
 ///

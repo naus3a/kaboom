@@ -50,6 +50,10 @@ func NewPubSubComms(channelName string) (*PubSubComms, error) {
 	return c, nil
 }
 
+func (c* PubSubComms) GetChannelName()string{
+	return c.chanName
+}
+
 func (c* PubSubComms) Stop() error{
 	c.cancel()
 	c.wg.Wait()
