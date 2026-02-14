@@ -3,6 +3,7 @@ package remote
 import (
 	"context"
 	"fmt"
+	"sync"
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -11,12 +12,13 @@ import (
 	drouting "github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	dutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
 	"github.com/naus3a/kaboom/cmd"
-	"sync"
 )
 
 type PubSubComms struct {
 	chanName          string
 	theCtx            context.Context
+	cancel		  context.CancelFunc
+	wg		  sync.WaitGroup
 	theHost           host.Host
 	pubSub            *pubsub.PubSub
 	topic             *pubsub.Topic
@@ -29,11 +31,11 @@ type PubSubComms struct {
 	OnMessageParsed func(*pubsub.Message)
 }
 
-func NewPubSubComms(channelName string, ctx context.Context) (*PubSubComms, error) {
+func NewPubSubComms(channelName string) (*PubSubComms, error) {
 	c := new(PubSubComms)
+	c.theCtx, c.cancel = context.WithCancel(context.Background())
 	var err error
 	c.chanName = channelName
-	c.theCtx = ctx
 	c.theHost, err = libp2p.New(libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/0"))
 
 	if err != nil {
@@ -46,6 +48,22 @@ func NewPubSubComms(channelName string, ctx context.Context) (*PubSubComms, erro
 	}
 
 	return c, nil
+}
+
+func (c* PubSubComms) GetChannelName()string{
+	return c.chanName
+}
+
+func (c* PubSubComms) Stop() error{
+	c.cancel()
+	c.wg.Wait()
+
+	err := c.theHost.Close()
+	if err!=nil{
+		return err
+	}
+	fmt.Println("Comms Closed.")	
+	return nil
 }
 
 func (c *PubSubComms) GetMyId()(peer.ID	, error){
@@ -81,7 +99,13 @@ func (c *PubSubComms) Listen() error {
 }
 
 func (c* PubSubComms) ParseMessages(){
+	c.wg.Add(1)
+	defer c.wg.Done()
 	for{
+		if c.theCtx.Err()!=nil{
+			fmt.Println("Message parsing stopped")
+			return
+		}
 		m, err := c.sub.Next(c.theCtx)
 		if err!= nil{
 			continue
@@ -127,19 +151,30 @@ func (c *PubSubComms) Send(data []byte) error {
 	return c.topic.Publish(c.theCtx, data)
 }
 
-func (c *PubSubComms) DiscoverPeers() {
+func (c *PubSubComms) DiscoverPeers() {	
+	c.wg.Add(1)
+	defer c.wg.Done()
+
 	err := c.initDHT()
 	cmd.ReportErrorAndExit(err)
 	routingDiscovery := drouting.NewRoutingDiscovery(c.theDht)
 	dutil.Advertise(c.theCtx, routingDiscovery, c.chanName)
 	anyConnected := false
 	for !anyConnected {
+		if c.theCtx.Err()!=nil{
+			fmt.Println("Discovery stopped.")
+			return
+		}
 		cmd.ColorPrintln("Searching for peers...", cmd.Yellow)
 		peerChan, err := routingDiscovery.FindPeers(c.theCtx, c.chanName)
 		if err != nil {
 			panic(err)
 		}
 		for peer := range peerChan {
+			if c.theCtx.Err()!=nil{
+			fmt.Println("Discovery stopped.")
+			return
+		}
 			if peer.ID == c.theHost.ID() {
 				continue // No self connection
 			}

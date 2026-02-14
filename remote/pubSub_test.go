@@ -1,20 +1,12 @@
 package remote_test
 
 import(
-	"context"
 	"testing"
 	"github.com/naus3a/kaboom/remote"
 )
 
 func TestPubSubSender(t *testing.T){
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(
-		func(){
-			cancel()
-		},
-	)
-
-	comms, err := remote.NewPubSubComms("cippa", ctx)
+	comms, err := remote.NewPubSubComms("cippa")
 	if err!= nil {
 		t.Errorf("FAIL: cannot create pubsub comms: %v", err)
 	}

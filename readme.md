@@ -13,7 +13,7 @@ Cobsider this alpha software and a theoretical exercise. Imagine it was written 
 - [x] Authenticated messaging
 - [x] IPFS payload storage
 - [x] IPFs/pubsub heartbeat
-- [ ] dynamic heartbeat topic/channel
+- [x] dynamic heartbeat topic/channel
 - [x] health chack logging
 - [ ] multi node release protocol
 - [ ] release to non-nodes

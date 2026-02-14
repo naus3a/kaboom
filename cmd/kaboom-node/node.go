@@ -6,7 +6,6 @@ import (
 	"flag"
 	"time"
 	"sync"
-	"context"
 	"github.com/naus3a/kaboom/fs"
 	"github.com/naus3a/kaboom/cmd"
 	"github.com/naus3a/kaboom/sign"
@@ -23,9 +22,14 @@ Options:
 	-s, --shares	a list  of csv share paths
 	-l, --log	path to the log file (default: log.logb)
 `
+
+const intervalExpiredHb = 1*time.Hour
+const intervalRotChan = 5*time.Minute
+
 var muShares sync.RWMutex
 var shares []*sign.ArmoredShare
 var log *sign.HeartBeatLog
+var comms * remote.PubSubComms
 var lFlag string
 
 func main() {
@@ -69,27 +73,123 @@ func main() {
 	cmd.ReportErrorAndExit(err)
 
 	checkExpiredHeartBeats()
-	go startTimedExpiredHeartBeatsCheck()
 
 	//
 	// heartbeat listening
 	//
-	ctx := context.Background()
+	comms = nil
 
-	comms, err := remote.NewPubSubComms("cippa", ctx)
+	//TODO: support multiple shares
+	
+	StartCommsOnChannel(remote.MakeChannelNameNow(shares[0].AuthKey))
+	
+	tExpiredHb := time.NewTicker(intervalExpiredHb)
+	tRotChan := time.NewTicker(intervalRotChan)
+
+	for{
+		select{
+			case <-tExpiredHb.C:
+				checkExpiredHeartBeats()
+			case <-tRotChan.C:
+				updateChanNameIfNeeded()
+
+		}
+	}
+}
+
+///
+/// comms
+///
+
+func StartCommsOnChannel(chanName string){
+	if comms != nil {
+		return
+	}
+	var err error = nil
+	cmd.ColorPrintln(fmt.Sprintf("Channel name: %s", chanName), cmd.Green)
+
+	comms, err = remote.NewPubSubComms(chanName)
 	cmd.ReportErrorAndExit(err)
 	cmd.ColorPrintln("Comms ready", cmd.Green)
-	
-	comms.OnMessageParsed = handleMessage
 
+	comms.OnMessageParsed = handleMessage
 	go comms.DiscoverPeers()
 
 	err = comms.Listen()
 	cmd.ReportErrorAndExit(err)
 	cmd.ColorPrintln("Listening.", cmd.Green)
-	
-	comms.ParseMessages()
+	go comms.ParseMessages()
 }
+
+func stopComms() error{
+	if comms==nil{
+		return nil
+	}
+	err := comms.Stop()
+	if err != nil {
+		return err
+	}
+	comms = nil
+	return nil
+}
+
+func handleMessage(m *pubsub.Message){
+	hb, err := sign.DecodeBinaryHeartBeat(m.Message.Data)
+	if err != nil{
+		return
+	}
+	muShares.RLock()
+	defer muShares.RUnlock()
+	for i:=0; i<len(shares); i++{
+		good, err := sign.VerifyHeartBeat(shares[i], &hb)
+		if err == nil {
+			if good {
+				logHeartBeat(shares[i], &hb)
+			}else{
+				handleTamperedHeartBeat(shares[i])
+			}
+			return
+		}
+	}
+	//muShares.RUnlock()
+}
+
+func logHeartBeat(s * sign.ArmoredShare, hb *sign.HeartBeat){
+	if !hb.AllGood{
+		startReleaseProtocol(s)
+		return
+	}
+	cmd.ColorPrintln(fmt.Sprintf("Good heartbeat from %s", s.AuthKey), cmd.Green)
+	log.LogHeartBeat(s.AuthKey, hb)
+	err := saveLog(lFlag)
+	if err != nil {
+		cmd.ColorPrintln("Cannot save log", cmd.Red)
+	}
+}
+
+func handleTamperedHeartBeat(s * sign.ArmoredShare){
+	cmd.ColorPrintln(fmt.Sprintf("Tampered heartbeat for %s", s.AuthKey), cmd.Red)
+}
+
+///
+/// channel name rotation
+//
+
+func updateChanNameIfNeeded(){
+	chanName := remote.MakeChannelNameNow(shares[0].AuthKey)
+	if chanName == comms.GetChannelName(){
+		return
+	}
+
+	fmt.Println("Rotating channel")
+	err := stopComms()
+	cmd.ReportErrorAndExit(err)
+	StartCommsOnChannel(remote.MakeChannelNameNow(shares[0].AuthKey))
+}
+
+///
+/// fs
+///
 
 func loadShares(csv string) error{
 	pthShares, err := cmd.UnpackCsvArg(&csv)
@@ -137,6 +237,10 @@ func saveLog(pth string) error{
 	return fs.SaveFile(data, pth)
 }
 
+//
+// check expired heartbeats
+//
+
 func checkExpiredHeartBeats(){
 	now := time.Now().Unix()
 	muShares.RLock()
@@ -150,7 +254,7 @@ func checkExpiredHeartBeats(){
 
 func startTimedExpiredHeartBeatsCheck(){
 	const interval = 2
-	ticker := time.NewTicker(interval *time.Second)
+	ticker := time.NewTicker(interval *time.Hour)
 	defer ticker.Stop()
 	for {
 		select{
@@ -160,45 +264,11 @@ func startTimedExpiredHeartBeatsCheck(){
 	}
 }
 
-func handleMessage(m *pubsub.Message){
-	hb, err := sign.DecodeBinaryHeartBeat(m.Message.Data)
-	if err != nil{
-		return
-	}
-	muShares.RLock()
-	defer muShares.RUnlock()
-	for i:=0; i<len(shares); i++{
-		good, err := sign.VerifyHeartBeat(shares[i], &hb)
-		if err == nil {
-			if good {
-				logHeartBeat(shares[i], &hb)
-			}else{
-				handleTamperedHeartBeat(shares[i])
-			}
-			return
-		}
-	}
-	//muShares.RUnlock()
-}
-
-func logHeartBeat(s * sign.ArmoredShare, hb *sign.HeartBeat){
-	if !hb.AllGood{
-		startReleaseProtocol(s)
-		return
-	}
-	cmd.ColorPrintln(fmt.Sprintf("Good heartbeat from %s", s.AuthKey), cmd.Green)
-	log.LogHeartBeat(s.AuthKey, hb)
-	err := saveLog(lFlag)
-	if err != nil {
-		cmd.ColorPrintln("Cannot save log", cmd.Red)
-	}
-}
-
-func handleTamperedHeartBeat(s * sign.ArmoredShare){
-	cmd.ColorPrintln(fmt.Sprintf("Tampered heartbeat for %s", s.AuthKey), cmd.Red)
-}
+// release
 
 func startReleaseProtocol(s *sign.ArmoredShare){
 	cmd.ColorPrintln(fmt.Sprintf("RELEASING PROTOCOL STARTED FOR %s", s.AuthKey), cmd.Red)
 	//TODO
 }
+
+
