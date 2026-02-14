@@ -9,8 +9,6 @@ import (
 	"github.com/naus3a/kaboom/fs"
 	"github.com/naus3a/kaboom/cmd"
 	"github.com/naus3a/kaboom/sign"
-	"github.com/naus3a/kaboom/remote"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
 const usage = `Usage:
@@ -29,7 +27,7 @@ const intervalRotChan = 5*time.Minute
 var muShares sync.RWMutex
 var shares []*sign.ArmoredShare
 var log *sign.HeartBeatLog
-var comms * remote.PubSubComms
+var comms []*CommsListener
 var lFlag string
 
 func main() {
@@ -77,12 +75,8 @@ func main() {
 	//
 	// heartbeat listening
 	//
-	comms = nil
+	createCommsListeners()
 
-	//TODO: support multiple shares
-	
-	StartCommsOnChannel(remote.MakeChannelNameNow(shares[0].AuthKey))
-	
 	tExpiredHb := time.NewTicker(intervalExpiredHb)
 	tRotChan := time.NewTicker(intervalRotChan)
 
@@ -91,7 +85,7 @@ func main() {
 			case <-tExpiredHb.C:
 				checkExpiredHeartBeats()
 			case <-tRotChan.C:
-				updateChanNameIfNeeded()
+				updateChannelNameIfNeeded()
 
 		}
 	}
@@ -101,58 +95,16 @@ func main() {
 /// comms
 ///
 
-func StartCommsOnChannel(chanName string){
-	if comms != nil {
-		return
-	}
+func createCommsListeners(){
 	var err error = nil
-	cmd.ColorPrintln(fmt.Sprintf("Channel name: %s", chanName), cmd.Green)
-
-	comms, err = remote.NewPubSubComms(chanName)
-	cmd.ReportErrorAndExit(err)
-	cmd.ColorPrintln("Comms ready", cmd.Green)
-
-	comms.OnMessageParsed = handleMessage
-	go comms.DiscoverPeers()
-
-	err = comms.Listen()
-	cmd.ReportErrorAndExit(err)
-	cmd.ColorPrintln("Listening.", cmd.Green)
-	go comms.ParseMessages()
+	comms = make([]*CommsListener, len(shares))
+	for i:=0;i<len(shares);i++{
+		comms[i], err = NewCommsListener(shares[i], logHeartBeat, handleTamperedHeartBeat) 
+		cmd.ReportErrorAndExit(err)
+	}
 }
 
-func stopComms() error{
-	if comms==nil{
-		return nil
-	}
-	err := comms.Stop()
-	if err != nil {
-		return err
-	}
-	comms = nil
-	return nil
-}
 
-func handleMessage(m *pubsub.Message){
-	hb, err := sign.DecodeBinaryHeartBeat(m.Message.Data)
-	if err != nil{
-		return
-	}
-	muShares.RLock()
-	defer muShares.RUnlock()
-	for i:=0; i<len(shares); i++{
-		good, err := sign.VerifyHeartBeat(shares[i], &hb)
-		if err == nil {
-			if good {
-				logHeartBeat(shares[i], &hb)
-			}else{
-				handleTamperedHeartBeat(shares[i])
-			}
-			return
-		}
-	}
-	//muShares.RUnlock()
-}
 
 func logHeartBeat(s * sign.ArmoredShare, hb *sign.HeartBeat){
 	if !hb.AllGood{
@@ -175,16 +127,12 @@ func handleTamperedHeartBeat(s * sign.ArmoredShare){
 /// channel name rotation
 //
 
-func updateChanNameIfNeeded(){
-	chanName := remote.MakeChannelNameNow(shares[0].AuthKey)
-	if chanName == comms.GetChannelName(){
-		return
+func updateChannelNameIfNeeded(){
+	var err error = nil
+	for i:=0;i<len(comms);i++{
+		err = comms[i].UpdateChannelNameIfNeeded()
+		cmd.ReportErrorAndExit(err)
 	}
-
-	fmt.Println("Rotating channel")
-	err := stopComms()
-	cmd.ReportErrorAndExit(err)
-	StartCommsOnChannel(remote.MakeChannelNameNow(shares[0].AuthKey))
 }
 
 ///
