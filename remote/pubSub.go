@@ -62,7 +62,7 @@ func (c* PubSubComms) Stop() error{
 	if err!=nil{
 		return err
 	}
-	fmt.Println("Comms Closed.")	
+	fmt.Println("%s: Comms Closed.", c.chanName)	
 	return nil
 }
 
@@ -162,17 +162,17 @@ func (c *PubSubComms) DiscoverPeers() {
 	anyConnected := false
 	for !anyConnected {
 		if c.theCtx.Err()!=nil{
-			fmt.Println("Discovery stopped.")
+			fmt.Println("%s: Discovery stopped.", c.chanName)
 			return
 		}
-		cmd.ColorPrintln("Searching for peers...", cmd.Yellow)
+		cmd.ColorPrintln(fmt.Sprintf("%s: Searching for peers...", c.chanName), cmd.Yellow)
 		peerChan, err := routingDiscovery.FindPeers(c.theCtx, c.chanName)
 		if err != nil {
 			panic(err)
 		}
 		for peer := range peerChan {
 			if c.theCtx.Err()!=nil{
-			fmt.Println("Discovery stopped.")
+				fmt.Println("%s: Discovery stopped.", c.chanName)
 			return
 		}
 			if peer.ID == c.theHost.ID() {
@@ -181,12 +181,12 @@ func (c *PubSubComms) DiscoverPeers() {
 			err := c.theHost.Connect(c.theCtx, peer)
 			if err != nil {
 			} else {
-				cmd.ColorPrintln(fmt.Sprintf("Connected to %s", peer.ID), cmd.Green)
+				cmd.ColorPrintln(fmt.Sprintf("%s: Connected to %s", c.chanName, peer.ID), cmd.Green)
 				anyConnected = true
 			}
 		}
 	}
-	cmd.ColorPrintln("Peer discovery complete.", cmd.Green)
+	cmd.ColorPrintln(fmt.Sprintf("%s: Peer discovery complete.", c.chanName), cmd.Green)
 	if c.OnPeerConnected != nil {
 		c.OnPeerConnected()
 	}
